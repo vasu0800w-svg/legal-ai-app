@@ -84,10 +84,10 @@ def create_court_ready_docx(text):
     doc = Document()
     section = doc.sections[0]
     section.page_width = Inches(8.5)
-    section.page_height = Inches(14.0)  # Standard Legal Page Size
+    section.page_height = Inches(14.0)
     section.top_margin = Inches(1.0)
     section.bottom_margin = Inches(1.0)
-    section.left_margin = Inches(1.5)  # Space for Binding
+    section.left_margin = Inches(1.5)
     section.right_margin = Inches(1.0)
     
     draft_content = ""
@@ -127,12 +127,16 @@ def create_court_ready_docx(text):
 st.sidebar.title("⚖️ NyayaAI Control Panel")
 menu = st.sidebar.radio("Navigation", ["💬 Case Studio", "📂 Case History & Search", "⚙️ Settings"])
 
-api_key = st.sidebar.text_input("Enter Gemini API Key", type="password")
+# 🔑 Fetch API Key automatically from Streamlit Secrets if available
+default_api_key = ""
+if "GEMINI_API_KEY" in st.secrets:
+    default_api_key = st.secrets["GEMINI_API_KEY"]
+
+api_key = st.sidebar.text_input("Enter Gemini API Key", value=default_api_key, type="password")
 
 if api_key:
     genai.configure(api_key=api_key)
     
-    # Initialize Session Preferences
     if "app_lang" not in st.session_state:
         st.session_state.app_lang = "Pure Hindi (Formal Legal)"
     if "advocate_name" not in st.session_state:
@@ -142,33 +146,27 @@ if api_key:
 
     local_templates_text = load_all_local_templates()
 
-    # Dynamic System Instruction with Advocate & Court Context
     system_instruction = f"""
     ROLE & OBJECTIVE:
     You are an elite Indian Senior Advocate and Master Legal Draftsman assisting a veteran attorney.
     Response Language Style: {st.session_state.app_lang}.
     
     MANDATORY DRAFTING DETAILS:
-    - Advocate Name to include in signatures/verification: {st.session_state.advocate_name if st.session_state.advocate_name else "[Advocate Name]"}
-    - Court Heading to use if unspecified: {st.session_state.default_court if st.session_state.default_court else "[Court Name]"}
+    - Advocate Name: {st.session_state.advocate_name if st.session_state.advocate_name else "[Advocate Name]"}
+    - Court Heading: {st.session_state.default_court if st.session_state.default_court else "[Court Name]"}
     
     CRITICAL DRAFTING RULES:
-    1. MULTI-TEMPLATE SELECTION:
-       - Match the requested document to the stored Master Templates in database below.
-       - Use its structural blueprint (headers, petitioner/respondent layout, prayer format, verification clause).
-    2. ACCURACY & FLEXIBILITY:
-       - Create elaborate, numbered paragraphs based on actual case facts.
+    1. MULTI-TEMPLATE SELECTION: Match requested doc with Database Master Templates.
+    2. ACCURACY & FLEXIBILITY: Write detailed numbered paragraphs based on case facts.
     
     PERMANENT MASTER TEMPLATES IN DATABASE:
     {local_templates_text if local_templates_text else "Default Standard Court Layout (High Court / District Court Format)"}
     
     OUTPUT FORMATTING:
-    - Conversational notes or analysis go OUTSIDE the tags.
-    - The final court draft MUST be strictly enclosed inside:
+    Final court draft MUST be strictly enclosed inside:
       START_DRAFT
-      ... (The Detailed Legal Draft Only) ...
+      ...
       END_DRAFT
-    - Do NOT translate 'START_DRAFT' or 'END_DRAFT' tags into Hindi.
     """
     
     model = genai.GenerativeModel(
@@ -177,13 +175,12 @@ if api_key:
         generation_config={"temperature": 0.0}
     )
 
-    # 1. ⚙️ SETTINGS PAGE
     if menu == "⚙️ Settings":
         st.header("⚙️ Application Settings & Format Database")
         
         st.subheader("👤 Profile & Court Information")
-        adv_name_input = st.text_input("Advocate Name (for Draft Signatures):", value=st.session_state.advocate_name)
-        court_input = st.text_input("Default Court Name (e.g., In the Court of Judicial Magistrate Class I):", value=st.session_state.default_court)
+        adv_name_input = st.text_input("Advocate Name:", value=st.session_state.advocate_name)
+        court_input = st.text_input("Default Court Name:", value=st.session_state.default_court)
         
         selected_lang = st.selectbox("Preferred AI Language & Style", [
             "Pure Hindi (Formal Legal)",
@@ -195,16 +192,11 @@ if api_key:
             st.session_state.advocate_name = adv_name_input
             st.session_state.default_court = court_input
             st.session_state.app_lang = selected_lang
-            st.success("Profile, Court Name & Language preferences updated successfully!")
+            st.success("Settings updated!")
             
         st.markdown("---")
         st.subheader("📁 Bulk Upload Court Formats to AI Database")
-        master_files = st.file_uploader(
-            "Upload Master Legal Templates (.docx / .txt)", 
-            type=["docx", "txt"], 
-            accept_multiple_files=True,
-            key="settings_bulk_uploader"
-        )
+        master_files = st.file_uploader("Upload Master Legal Templates (.docx / .txt)", type=["docx", "txt"], accept_multiple_files=True, key="settings_bulk_uploader")
         
         if st.button("💾 Save Templates to AI Database"):
             if master_files:
@@ -212,11 +204,10 @@ if api_key:
                     save_path = os.path.join(TEMPLATES_FOLDER, mf.name)
                     with open(save_path, "wb") as f:
                         f.write(mf.read())
-                st.success(f"✅ {len(master_files)} फ़ॉर्मेट सफलतापूर्वक डेटाबेस में सेव हो गए!")
+                st.success("✅ Formats saved to database!")
                 st.rerun()
 
         st.markdown("---")
-        st.markdown("##### Currently Active Master Formats in Database:")
         if os.path.exists(TEMPLATES_FOLDER):
             files = os.listdir(TEMPLATES_FOLDER)
             if files:
@@ -229,7 +220,6 @@ if api_key:
                             os.remove(os.path.join(TEMPLATES_FOLDER, f))
                             st.rerun()
 
-    # 2. 📂 CASE HISTORY
     elif menu == "📂 Case History & Search":
         st.header("📂 Past Case History & Global Search")
         search_query = st.text_input("🔍 Search chats:")
@@ -239,7 +229,6 @@ if api_key:
                 with st.expander(f"📁 Case: {sess}"):
                     st.write(content[:300] + "...")
 
-    # 3. 💬 MAIN CASE STUDIO
     elif menu == "💬 Case Studio":
         st.title("⚖️ NyayaAI: Precision Legal Studio")
         
@@ -260,7 +249,6 @@ if api_key:
 
         st.markdown("---")
 
-        # 💬 Chat Messages
         messages = load_chat_history(current_chat_name)
 
         for idx, message in enumerate(messages):
@@ -303,23 +291,12 @@ if api_key:
         
         with col_opt1:
             st.markdown("### 📁 1. Case Evidence / Facts")
-            evidence_files = st.file_uploader(
-                "Upload FIR, Screenshots, Proofs (Uploads & clears automatically)",
-                type=["pdf", "txt", "png", "jpg", "jpeg", "mp3", "wav", "m4a"],
-                accept_multiple_files=True,
-                key=f"evidence_uploader_{st.session_state.uploader_key}"
-            )
+            evidence_files = st.file_uploader("Upload Evidence", type=["pdf", "txt", "png", "jpg", "jpeg", "mp3", "wav", "m4a"], accept_multiple_files=True, key=f"evidence_uploader_{st.session_state.uploader_key}")
 
         with col_opt2:
-            st.markdown("### 📜 2. Quick New Format (Optional)")
-            format_file = st.file_uploader(
-                "Upload New Format (.docx/.txt) - Saved automatically to DB!",
-                type=["docx", "txt"],
-                accept_multiple_files=False,
-                key=f"format_uploader_{st.session_state.uploader_key}"
-            )
+            st.markdown("### 📜 2. Quick New Format")
+            format_file = st.file_uploader("Upload Format", type=["docx", "txt"], accept_multiple_files=False, key=f"format_uploader_{st.session_state.uploader_key}")
 
-        # Voice Input Component
         st.write("🎙️ **Voice Dictation:**")
         voice_code = """
         <button id="speech-btn" style="padding: 6px 12px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; width: 120px;">
@@ -349,15 +326,14 @@ if api_key:
         """
         components.html(voice_code, height=40)
 
-        # Main Input Area
-        user_input = st.chat_input("यहाँ केस की बात लिखें या कहें: 'डेटाबेस के फ़ॉर्मेट के अनुसार ड्राफ्ट तैयार करो'...")
+        user_input = st.chat_input("यहाँ केस की बात लिखें...")
 
         if user_input:
             if format_file is not None:
                 save_path = os.path.join(TEMPLATES_FOLDER, format_file.name)
                 with open(save_path, "wb") as f:
                     f.write(format_file.read())
-                st.toast("✅ नया फ़ॉर्मेट AI के डेटाबेस में सेव हो गया!", icon="📜")
+                st.toast("✅ Format Saved!", icon="📜")
 
             prompt_parts = []
             
@@ -395,4 +371,4 @@ if api_key:
                 save_message(current_chat_name, "assistant", full_response)
                 st.rerun()
 else:
-    st.info("👈 Please enter your Gemini API Key in the sidebar.")
+    st.info("👈 Please enter your Gemini API Key in the sidebar or configure GEMINI_API_KEY in Streamlit Secrets.")

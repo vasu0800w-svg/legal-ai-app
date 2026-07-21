@@ -272,34 +272,43 @@ if api_key:
                         st.error("❌ Failed to restore history.")
 
         st.markdown("---")
-        search_query = st.text_input("🔍 Search past cases:")
-        if search_query:
-            matches = search_chats(search_query)
-            for sess, content in matches:
-                with st.expander(f"📁 Case: {sess}"):
-                    st.write(content[:300] + "...")
+        st.subheader("📜 All Recorded Cases")
+        sessions = get_sessions()
+        if sessions:
+            for s in sessions:
+                with st.expander(f"📁 Case: {s}"):
+                    chats = load_chat_history(s)
+                    for c in chats:
+                        st.markdown(f"**{c['role'].capitalize()}:** {c['content']}")
+        else:
+            st.info("No past cases found in history.")
 
     elif menu == "💬 Case Studio":
         st.title("⚖️ NyayaAI: Precision Legal Studio")
         
         sessions = get_sessions()
+        
+        # 🎯 FORCE NEW SESSION ON FRESH OPEN
         if "current_session" not in st.session_state:
-            st.session_state.current_session = sessions[0] if sessions else f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
+            st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
 
         col1, col2 = st.columns([3, 1])
         with col1:
-            current_chat_name = st.selectbox("Active Case Session", sessions if sessions else [st.session_state.current_session], index=0)
+            options = [st.session_state.current_session] + [s for s in sessions if s != st.session_state.current_session]
+            current_chat_name = st.selectbox("Active Case Session", options, index=0)
             st.session_state.current_session = current_chat_name
         with col2:
             if st.button("➕ New Case"):
                 new_name = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
-                save_message(new_name, "assistant", "New case session initialized.")
                 st.session_state.current_session = new_name
                 st.rerun()
 
         st.markdown("---")
 
         messages = load_chat_history(current_chat_name)
+
+        if not messages:
+            st.info("✨ **New Case Initialized.** Enter evidence or ask questions below to start drafting.")
 
         for idx, message in enumerate(messages):
             with st.chat_message(message["role"]):

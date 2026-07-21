@@ -6,6 +6,7 @@ import datetime
 import urllib.parse
 import io
 import os
+import json
 from docx import Document
 from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -58,6 +59,31 @@ def search_chats(keyword):
     results = c.fetchall()
     conn.close()
     return results
+
+def export_all_data():
+    conn = sqlite3.connect("nyaya_chats.db", check_same_thread=False)
+    c = conn.cursor()
+    c.execute("SELECT session_name, role, content, timestamp FROM chats ORDER BY id ASC")
+    rows = c.fetchall()
+    conn.close()
+    data = []
+    for r in rows:
+        data.append({"session_name": r[0], "role": r[1], "content": r[2], "timestamp": r[3]})
+    return json.dumps(data, ensure_ascii=False, indent=2)
+
+def import_all_data(json_str):
+    try:
+        data = json.loads(json_str)
+        conn = sqlite3.connect("nyaya_chats.db", check_same_thread=False)
+        c = conn.cursor()
+        for item in data:
+            c.execute("INSERT INTO chats (session_name, role, content, timestamp) VALUES (?, ?, ?, ?)",
+                      (item["session_name"], item["role"], item["content"], item.get("timestamp", "")))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception:
+        return False
 
 def load_all_local_templates():
     template_data = ""
@@ -127,7 +153,6 @@ def create_court_ready_docx(text):
 st.sidebar.title("⚖️ NyayaAI Control Panel")
 menu = st.sidebar.radio("Navigation", ["💬 Case Studio", "📂 Case History & Search", "⚙️ Settings"])
 
-# 🔑 Fetch API Key automatically from Streamlit Secrets if available
 default_api_key = ""
 if "GEMINI_API_KEY" in st.secrets:
     default_api_key = st.secrets["GEMINI_API_KEY"]
@@ -221,8 +246,33 @@ if api_key:
                             st.rerun()
 
     elif menu == "📂 Case History & Search":
-        st.header("📂 Past Case History & Global Search")
-        search_query = st.text_input("🔍 Search chats:")
+        st.header("📂 Past Case History & Backup Studio")
+        
+        col_bk1, col_bk2 = st.columns(2)
+        with col_bk1:
+            st.subheader("📥 Export / Backup History")
+            backup_data = export_all_data()
+            st.download_button(
+                label="⬇️ Download History Backup (.json)",
+                data=backup_data,
+                file_name=f"NyayaAI_Backup_{datetime.datetime.now().strftime('%Y%m%d')}.json",
+                mime="application/json"
+            )
+        
+        with col_bk2:
+            st.subheader("📤 Import Backup File")
+            uploaded_backup = st.file_uploader("Upload Backup (.json)", type=["json"], key="history_importer")
+            if uploaded_backup is not None:
+                if st.button("🔄 Restore History"):
+                    content = uploaded_backup.read().decode("utf-8")
+                    if import_all_data(content):
+                        st.success("✅ History Restored Successfully!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Failed to restore history.")
+
+        st.markdown("---")
+        search_query = st.text_input("🔍 Search past cases:")
         if search_query:
             matches = search_chats(search_query)
             for sess, content in matches:

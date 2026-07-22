@@ -28,7 +28,7 @@ if supabase_url and supabase_key:
     except Exception as e:
         st.error(f"Supabase connection error: {e}")
 
-# 🔐 STYLING FOR CLEAN MODERN DARK UI (NO BROKEN OVERLAYS)
+# 🔐 ADVANCED CUSTOM STYLING FOR FIXATION & PREMIUM GEMINI/CHATGPT LOOK
 st.markdown("""
 <style>
     .stApp {
@@ -41,20 +41,32 @@ st.markdown("""
         border-right: 1px solid #1f222e !important;
     }
     
+    /* Input & Textarea Elements Styling */
     .stTextInput > div > div > input, .stSelectbox > div > div, .stTextArea > div > div > textarea {
         background-color: #0e1017 !important;
         color: #ffffff !important;
         border: 1px solid #1f222e !important;
         border-radius: 12px !important;
     }
+    .stTextInput > div > div > input:focus, .stTextArea > div > div > textarea:focus {
+        border-color: #8b5cf6 !important;
+        box-shadow: 0 0 12px rgba(139, 92, 246, 0.3) !important;
+    }
     
+    /* Buttons Styling */
     .stButton > button {
         background: linear-gradient(135deg, #7c3aed, #6366f1) !important;
         color: white !important;
-        border-radius: 10px !important;
+        border-radius: 12px !important;
         border: none !important;
-        padding: 8px 16px !important;
+        padding: 10px 22px !important;
         font-weight: 600 !important;
+        box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3) !important;
+        transition: all 0.2s ease;
+    }
+    .stButton > button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(124, 58, 237, 0.5) !important;
     }
     
     .stDownloadButton > button {
@@ -62,6 +74,7 @@ st.markdown("""
         color: #c084fc !important;
         border: 1px solid #a855f7 !important;
         border-radius: 10px !important;
+        font-weight: 600 !important;
     }
     
     .user-profile-card {
@@ -72,9 +85,24 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
+    /* Target main block bottom padding so scroll content doesn't get covered by fixed bar */
+    .main .block-container {
+        padding-bottom: 320px !important;
+    }
+
+    /* Fixed Bottom Control Deck Container Styling */
+    .bottom-deck-box {
+        background-color: #0a0b10;
+        border: 1px solid #1f222e;
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 -10px 30px rgba(0,0,0,0.7);
+        margin-top: 20px;
+    }
+
     .welcome-hero {
         text-align: center;
-        padding: 25px 20px 15px 20px;
+        padding: 30px 20px 20px 20px;
     }
     .welcome-title {
         font-size: 32px;
@@ -88,23 +116,16 @@ st.markdown("""
         margin-bottom: 25px;
     }
     
-    .action-card {
+    .case-studio-banner {
         background-color: #0e1017;
         border: 1px solid #1f222e;
-        border-radius: 12px;
-        padding: 12px;
-        margin-bottom: 8px;
-    }
-
-    .attachment-chip {
-        background-color: #1e1b4b;
-        border: 1px solid #7c3aed;
-        border-radius: 10px;
-        padding: 8px 12px;
-        color: #c084fc;
-        font-size: 13px;
-        font-weight: 600;
-        margin-bottom: 10px;
+        border-radius: 16px;
+        padding: 20px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 0 auto 30px auto;
+        max-width: 750px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -162,6 +183,7 @@ if not st.session_state.user:
                 <p style="color: #9ca3af; font-size: 14px; margin-top: 4px;">Your AI Legal Assistant</p>
                 <br>
                 <h4 style="margin: 0; font-weight: 600; color: #e5e7eb;">Login to your account</h4>
+                <p style="color: #6b7280; font-size: 13px;">Welcome back! Please enter your details.</p>
             </div>
             """, unsafe_allow_html=True)
             
@@ -183,7 +205,8 @@ if not st.session_state.user:
         else:
             st.markdown("""
             <div style="text-align: left;">
-                <h2 style="margin: 0; color: #ffffff;">Create your account</h2>
+                <h2 style="margin: 0; font-weight: 700; color: #ffffff;">Create your account</h2>
+                <p style="color: #9ca3af; font-size: 14px; margin-top: 4px;">Join Nyaya Assist AI and simplify legal tasks with AI.</p>
             </div>
             """, unsafe_allow_html=True)
             
@@ -217,6 +240,7 @@ if not st.session_state.user:
 current_user_email = st.session_state.user.email
 display_user_name = current_user_email.split('@')[0].capitalize()
 
+# Extract user name from metadata if available
 try:
     meta_name = st.session_state.user.user_metadata.get("full_name")
     if meta_name:
@@ -332,13 +356,6 @@ def read_uploaded_file_content(uploaded_file):
     elif file_type == "docx":
         doc = Document(uploaded_file)
         content = '\n'.join([p.text for p in doc.paragraphs])
-    elif file_type == "pdf":
-        try:
-            import pypdf
-            pdf_reader = pypdf.PdfReader(uploaded_file)
-            content = "\n".join([page.extract_text() for page in pdf_reader.pages if page.extract_text()])
-        except Exception:
-            content = f"[PDF FILE ATTACHED: {uploaded_file.name}]"
     elif file_type in ["jpg", "jpeg", "png"]:
         image_obj = Image.open(uploaded_file)
         content = f"[IMAGE FILE ATTACHED: {uploaded_file.name}]"
@@ -487,14 +504,15 @@ if api_key:
 
     elif menu == "💬 Case Studio":
         sessions = get_supabase_sessions()
+
         messages = get_supabase_chat_history(st.session_state.current_session)
 
-        # 🌟 HERO HOME SECTION
+        # 🌟 EXACT HERO HOME SECTION (MATCHING USER SCREENSHOT PERFECTLY)
         if not messages:
             st.markdown(f"""
             <div class="welcome-hero">
                 <div style="margin-bottom: 15px;">
-                    <svg width="90" height="90" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M50 15V80M50 15L25 35M50 15L75 35" stroke="url(#paint0_linear)" stroke-width="3" stroke-linecap="round"/>
                         <path d="M15 50C15 50 25 65 35 65C45 65 35 50 35 50" stroke="url(#paint1_linear)" stroke-width="3"/>
                         <path d="M65 50C65 50 75 65 85 65C95 65 85 50 85 50" stroke="url(#paint2_linear)" stroke-width="3"/>
@@ -520,7 +538,21 @@ if api_key:
             </div>
             """, unsafe_allow_html=True)
 
-        # 📜 CHAT MESSAGES DISPLAY AREA
+            col_b1, col_b2, col_b3 = st.columns([1, 4, 1])
+            with col_b2:
+                st.markdown("""
+                <div class="case-studio-banner">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span style="font-size: 28px;">📁</span>
+                        <div>
+                            <div style="font-weight: 700; font-size: 16px; color: #ffffff;">Case Studio</div>
+                            <div style="font-size: 13px; color: #9ca3af;">Describe your case, upload documents, and get AI-powered legal guidance.</div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        # 📜 CHAT MESSAGES DISPLAY AREA (SCROLLS NATIVELY WHILE BOTTOM REMAINS FIXED)
         else:
             col_hdr1, col_hdr2 = st.columns([4, 1])
             with col_hdr1:
@@ -545,42 +577,47 @@ if api_key:
                             key=f"docx_{idx}"
                         )
 
-        # ----------------- 🎯 CLEAN & ACCESSIBLE INPUT DECK -----------------
-        st.markdown("---")
-        col_deck1, col_deck2, col_deck3 = st.columns(3)
+        # ----------------- FIXED BOTTOM CONTROL DECK (GEMINI / CHATGPT STYLE) -----------------
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown('<div class="bottom-deck-box">', unsafe_allow_html=True)
+        
+        # 1. Main Ask Input Field
+        user_input = st.chat_input("💬 1. Ask Nyaya AI — Describe your case in detail...")
 
+        # 2. Bottom 3-Card Deck (Template, Documents, Voice)
+        col_deck1, col_deck2, col_deck3 = st.columns(3)
+        
         with col_deck1:
-            st.markdown("<div class='action-card'><strong style='color:#c084fc;'>📤 1. Upload Template</strong></div>", unsafe_allow_html=True)
-            format_file = st.file_uploader(
-                "Notice / Petition format", 
-                type=["docx", "txt", "pdf"], 
-                key=f"format_{st.session_state.uploader_key}"
-            )
+            st.markdown("##### 📤 2. Upload Template")
+            st.caption("Upload format (e.g., section format, notice, petition format etc.)")
+            format_file = st.file_uploader("Template File", type=["docx", "txt"], key=f"format_file_{st.session_state.uploader_key}", label_visibility="collapsed")
 
         with col_deck2:
-            st.markdown("<div class='action-card'><strong style='color:#c084fc;'>📸 2. Upload Case Documents</strong></div>", unsafe_allow_html=True)
-            case_file = st.file_uploader(
-                "Case PDF, Word or Photos", 
-                type=["docx", "txt", "pdf", "jpg", "jpeg", "png"], 
-                key=f"case_{st.session_state.uploader_key}"
-            )
+            st.markdown("##### 📤 3. Upload Case Documents")
+            st.caption("Upload documents or image related to your case for analysis.")
+            case_file = st.file_uploader("Case Files / Photos", type=["docx", "txt", "jpg", "jpeg", "png"], key=f"case_file_{st.session_state.uploader_key}", label_visibility="collapsed")
+            if case_file:
+                ext = case_file.name.split('.')[-1].lower()
+                if ext in ["jpg", "jpeg", "png"]:
+                    st.caption(f"📸 Selected: `{case_file.name}`")
 
         with col_deck3:
-            st.markdown("<div class='action-card'><strong style='color:#c084fc;'>🎙️ Voice Assistant</strong></div>", unsafe_allow_html=True)
+            st.markdown("##### 🎙️ Voice Assistant")
+            st.caption("Speak to Nyaya AI and get instant legal help.")
             voice_html = """
-            <div style="background: #0e1017; border: 1px solid #1f222e; border-radius: 8px; padding: 6px; text-align: center;">
-                <button id="recordBtn" onclick="toggleRecord()" style="background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px; width: 100%;">
-                    🎤 Speak Now
+            <div style="text-align: center; margin-top: 5px;">
+                <button id="recordBtn" onclick="toggleRecord()" style="background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer; width: 100%;">
+                    🎤 Speak Now (Hindi/English)
                 </button>
-                <div id="statusTxt" style="color: #a855f7; font-size: 10px; margin-top: 3px;"></div>
-                <textarea id="speechOutput" placeholder="Voice text appears here... copy into chat input below." style="width: 100%; height: 32px; background-color: #050508; color: #ffffff; border: 1px solid #1f222e; border-radius: 4px; padding: 4px; font-size: 11px; resize: none; margin-top: 3px;"></textarea>
+                <div id="statusTxt" style="color: #a855f7; font-size: 11px; margin-top: 4px;"></div>
+                <textarea id="speechOutput" placeholder="Voice text appears here... copy into chat box." style="width: 100%; height: 45px; background-color: #050508; color: #ffffff; border: 1px solid #1f222e; border-radius: 8px; padding: 6px; font-size: 12px; resize: none; margin-top: 5px;"></textarea>
             </div>
             <script>
                 var recognition;
                 var isRecording = false;
                 function toggleRecord() {
                     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                        alert("Use Google Chrome.");
+                        alert("Browser speech recognition not supported. Use Chrome.");
                         return;
                     }
                     if (!isRecording) {
@@ -593,7 +630,7 @@ if api_key:
                             isRecording = true;
                             document.getElementById('recordBtn').innerText = "🛑 Stop";
                             document.getElementById('recordBtn').style.background = "#ef4444";
-                            document.getElementById('statusTxt').innerText = "Listening...";
+                            document.getElementById('statusTxt').innerText = "🎙️ Listening...";
                         };
                         recognition.onresult = function(event) {
                             var transcript = '';
@@ -609,7 +646,7 @@ if api_key:
                             isRecording = false;
                             document.getElementById('recordBtn').innerText = "🎤 Speak Now";
                             document.getElementById('recordBtn').style.background = "linear-gradient(135deg, #7c3aed, #6366f1)";
-                            document.getElementById('statusTxt').innerText = "Done!";
+                            document.getElementById('statusTxt').innerText = "✅ Done! Copy text.";
                         };
                         recognition.start();
                     } else {
@@ -618,43 +655,30 @@ if api_key:
                 }
             </script>
             """
-            st.components.v1.html(voice_html, height=100)
+            st.components.v1.html(voice_html, height=130)
 
-        # 🖼️ VISUAL ATTACHMENT PREVIEW CHIP (ChatGPT / Gemini Style)
-        if format_file or case_file:
-            st.markdown("##### 📎 Attached Files Ready to Submit:")
-            col_p1, col_p2 = st.columns(2)
-            with col_p1:
-                if format_file:
-                    st.markdown(f'<div class="attachment-chip">📐 Template: {format_file.name}</div>', unsafe_allow_html=True)
-            with col_p2:
-                if case_file:
-                    st.markdown(f'<div class="attachment-chip">📸 Case Doc/Image: {case_file.name}</div>', unsafe_allow_html=True)
-                    ext = case_file.name.split('.')[-1].lower()
-                    if ext in ["jpg", "jpeg", "png"]:
-                        st.image(Image.open(case_file), width=120)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        # 💬 1. CHAT INPUT WITH STICKY SEND (↑) ARROW
-        user_input = st.chat_input("💬 Ask Nyaya AI — Type your instructions here and click Send (↑)...")
-
-        # EXECUTE CHAT WHEN USER CLICKS SEND ARROW
-        if user_input or ((format_file or case_file) and user_input is not None):
+        # ONLY EXECUTE WHEN THE SUBMIT ARROW (↑) IS CLICKED
+        if user_input:
             format_content, _ = read_uploaded_file_content(format_file) if format_file else ("", None)
             case_content, case_image = read_uploaded_file_content(case_file) if case_file else ("", None)
 
             combined_prompt = ""
             if format_content:
                 combined_prompt += f"\n\n--- CUSTOM FORMAT TEMPLATE ATTACHED ---\n{format_content}\n"
+            else:
+                combined_prompt += "\n\n--- NO CUSTOM FORMAT UPLOADED. USE BUILT-IN STANDARD COURT DRAFT FORMAT ---\n"
+                
             if case_content:
                 combined_prompt += f"\n\n--- CASE FILES & EVIDENCE ATTACHED ---\n{case_content}\n"
                 
-            prompt_text = user_input if user_input else "Perform deep legal analysis on attached files and build court draft."
-            combined_prompt += f"\n\nUSER INSTRUCTION: {prompt_text}"
+            combined_prompt += f"\n\nUSER INSTRUCTION: {user_input}"
 
-            save_chat_to_supabase(st.session_state.current_session, "user", prompt_text)
+            save_chat_to_supabase(st.session_state.current_session, "user", user_input)
 
             with st.chat_message("user"):
-                st.markdown(prompt_text)
+                st.markdown(user_input)
                 if format_file:
                     st.info(f"📐 Custom Format Template: `{format_file.name}`")
                 if case_file:
@@ -680,7 +704,7 @@ if api_key:
                 
             if full_response:
                 save_chat_to_supabase(st.session_state.current_session, "assistant", full_response)
-                # 🔄 AUTO CLEAR UPLOADER FOR NEXT TURN
+                # 🔄 CLEAR UPLOADER FOR NEXT MESSAGES ONCE SENT SUCCESSFULLY
                 st.session_state.uploader_key += 1
                 st.rerun()
 else:

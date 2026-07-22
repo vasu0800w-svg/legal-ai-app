@@ -28,9 +28,15 @@ if supabase_url and supabase_key:
     except Exception as e:
         st.error(f"Supabase connection error: {e}")
 
-# 📱 SUPREME MOBILE-FRIENDLY & DESKTOP RESPONSIVE CSS
+# 📱 CLEAN UI & HIDE STREAMLIT DEFAULTS CSS
 st.markdown("""
 <style>
+    /* Hide Streamlit Header, Footer & Deploy/Fork Buttons */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stDeployButton {display:none;}
+    
     .stApp {
         background-color: #050508 !important;
         color: #f3f4f6 !important;
@@ -74,19 +80,6 @@ st.markdown("""
         width: 100%;
     }
 
-    /* 📱 MOBILE RESPONSIVE FIXES FOR TOP APP BAR & CARDS */
-    @media (max-width: 768px) {
-        .welcome-title {
-            font-size: 24px !important;
-        }
-        .welcome-subtitle {
-            font-size: 13px !important;
-        }
-        .case-studio-banner {
-            padding: 12px 14px !important;
-        }
-    }
-
     .pro-banner {
         background: linear-gradient(135deg, #1e1b4b, #0f172a);
         border: 1px solid #3b0764;
@@ -104,14 +97,14 @@ st.markdown("""
         padding: 10px 10px 5px 10px;
     }
     .welcome-title {
-        font-size: 32px;
+        font-size: 28px;
         font-weight: 700;
         color: #ffffff;
         margin-bottom: 6px;
     }
     .welcome-subtitle {
         color: #9ca3af;
-        font-size: 15px;
+        font-size: 14px;
         margin-bottom: 20px;
     }
     
@@ -119,8 +112,8 @@ st.markdown("""
         background-color: #0e1017;
         border: 1px solid #1f222e;
         border-radius: 16px;
-        padding: 18px 20px;
-        margin: 0 auto 20px auto;
+        padding: 16px;
+        margin: 0 auto 15px auto;
         max-width: 800px;
     }
 
@@ -128,7 +121,7 @@ st.markdown("""
         background-color: #0e1017;
         border: 1px solid #1f222e;
         border-radius: 12px;
-        padding: 12px;
+        padding: 10px;
         margin-bottom: 8px;
     }
 
@@ -483,7 +476,7 @@ def show_profile_dialog():
     if st.button("🚀 Upgrade to Pro Plan", key="modal_upgrade_btn", use_container_width=True):
         st.info("Pro Plan subscription gateway will be integrated soon!")
 
-# ----------------- TOP APP BAR (MOBILE FRIENDLY COLUMNS) -----------------
+# ----------------- TOP APP BAR -----------------
 col_top_h1, col_top_h2, col_top_h3 = st.columns([4, 1, 1])
 with col_top_h1:
     st.markdown("#### Nyaya Assist <span style='color:#a855f7;'>AI</span>", unsafe_allow_html=True)
@@ -535,16 +528,10 @@ if default_api_key:
 
     if menu == "📖 Library":
         st.markdown("## 📖 Legal Library")
-        st.markdown("यहाँ आप और आपके पापा अपनी जरूरी लीगल बुक्स, जजमेंट्स या केस फाइल्स अपलोड और सर्च कर सकते हैं।")
-        
-        search_query = st.text_input("🔍 Search Library...", placeholder="e.g. Section 498A, Bail Judgment...")
+        search_query = st.text_input("🔍 Search Library...", placeholder="e.g. Section 498A...")
         
         st.markdown("### 📤 Upload Files")
-        uploaded_doc = st.file_uploader(
-            "Select Judgment or Law Reference File (.pdf, .docx, .txt)", 
-            type=["pdf", "docx", "txt"], 
-            key="library_search_uploader"
-        )
+        uploaded_doc = st.file_uploader("Select File (.pdf, .docx, .txt)", type=["pdf", "docx", "txt"], key="library_search_uploader")
         
         if uploaded_doc:
             save_path = os.path.join(TEMPLATES_FOLDER, uploaded_doc.name)
@@ -672,27 +659,78 @@ if default_api_key:
                             key=f"docx_{idx}"
                         )
 
-        # ----------------- 🎯 MOBILE RESPONSIVE INPUT DECK -----------------
+        # ----------------- 🎯 MOBILE RESPONSIVE INPUT DECK WITH VOICE -----------------
         st.markdown("---")
-        col_deck1, col_deck2 = st.columns(2)
+        col_deck1, col_deck2, col_deck3 = st.columns(3)
 
         with col_deck1:
-            st.markdown("<div class='action-card'><strong style='color:#c084fc; font-size: 12px;'>📤 Template</strong></div>", unsafe_allow_html=True)
+            st.markdown("<div class='action-card'><strong style='color:#c084fc; font-size: 11px;'>📤 Template</strong></div>", unsafe_allow_html=True)
             format_file = st.file_uploader(
-                "Notice format", 
-                type=["docx", "txt", "pdf"], 
-                key=f"format_{st.session_state.uploader_key}",
-                label_visibility="collapsed"
+                "Notice", type=["docx", "txt", "pdf"], 
+                key=f"format_{st.session_state.uploader_key}", label_visibility="collapsed"
             )
 
         with col_deck2:
-            st.markdown("<div class='action-card'><strong style='color:#c084fc; font-size: 12px;'>📸 Case Docs</strong></div>", unsafe_allow_html=True)
+            st.markdown("<div class='action-card'><strong style='color:#c084fc; font-size: 11px;'>📸 Case Docs</strong></div>", unsafe_allow_html=True)
             case_file = st.file_uploader(
-                "PDF or Photos", 
-                type=["docx", "txt", "pdf", "jpg", "jpeg", "png"], 
-                key=f"case_{st.session_state.uploader_key}",
-                label_visibility="collapsed"
+                "PDF/Photo", type=["docx", "txt", "pdf", "jpg", "jpeg", "png"], 
+                key=f"case_{st.session_state.uploader_key}", label_visibility="collapsed"
             )
+
+        with col_deck3:
+            st.markdown("<div class='action-card'><strong style='color:#c084fc; font-size: 11px;'>🎙️ Voice</strong></div>", unsafe_allow_html=True)
+            voice_html = """
+            <div style="text-align: center;">
+                <button id="recordBtn" onclick="toggleRecord()" style="background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; border: none; padding: 6px 8px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 11px; width: 100%;">
+                    🎤 Speak
+                </button>
+                <div id="statusTxt" style="color: #a855f7; font-size: 9px; margin-top: 2px;"></div>
+                <textarea id="speechOutput" placeholder="Voice text..." style="width: 100%; height: 26px; background-color: #050508; color: #ffffff; border: 1px solid #1f222e; border-radius: 4px; padding: 2px; font-size: 10px; resize: none; margin-top: 2px;"></textarea>
+            </div>
+            <script>
+                var recognition;
+                var isRecording = false;
+                function toggleRecord() {
+                    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                        alert("Use Google Chrome.");
+                        return;
+                    }
+                    if (!isRecording) {
+                        var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                        recognition = new SpeechRecognition();
+                        recognition.continuous = true;
+                        recognition.interimResults = true;
+                        recognition.lang = 'hi-IN';
+                        recognition.onstart = function() {
+                            isRecording = true;
+                            document.getElementById('recordBtn').innerText = "🛑 Stop";
+                            document.getElementById('recordBtn').style.background = "#ef4444";
+                            document.getElementById('statusTxt').innerText = "Listening...";
+                        };
+                        recognition.onresult = function(event) {
+                            var transcript = '';
+                            for (var i = event.resultIndex; i < event.results.length; ++i) {
+                                transcript += event.results[i][0].transcript;
+                            }
+                            document.getElementById('speechOutput').value = transcript;
+                        };
+                        recognition.onerror = function(event) {
+                            document.getElementById('statusTxt').innerText = "Error";
+                        };
+                        recognition.onend = function() {
+                            isRecording = false;
+                            document.getElementById('recordBtn').innerText = "🎤 Speak";
+                            document.getElementById('recordBtn').style.background = "linear-gradient(135deg, #7c3aed, #6366f1)";
+                            document.getElementById('statusTxt').innerText = "Done!";
+                        };
+                        recognition.start();
+                    } else {
+                        recognition.stop();
+                    }
+                }
+            </script>
+            """
+            st.components.v1.html(voice_html, height=75)
 
         # 🖼️ VISUAL ATTACHMENT PREVIEW CHIP
         if format_file or case_file:

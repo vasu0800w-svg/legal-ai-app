@@ -168,7 +168,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 🔐 USER SYSTEM & AUTO-LOGIN STATE
+# 🔐 USER SYSTEM STATE
 if "user" not in st.session_state:
     st.session_state.user = None
 if "auth_mode" not in st.session_state:
@@ -180,21 +180,10 @@ if "current_session" not in st.session_state:
 if "nav_menu" not in st.session_state:
     st.session_state.nav_menu = "💬 Case Studio"
 
-# 🔄 Check Query Params for Auto-Login Persistence
-params = st.query_params
-if "logged_in_user" in params and not st.session_state.user:
-    saved_email = params["logged_in_user"]
-    class PersistentUser:
-        def __init__(self, email):
-            self.email = email
-            self.user_metadata = {"full_name": email.split('@')[0].capitalize()}
-    st.session_state.user = PersistentUser(saved_email)
-
 def login_user(email, password):
     try:
         res = supabase.auth.sign_in_with_password({"email": email, "password": password})
         st.session_state.user = res.user
-        st.query_params["logged_in_user"] = email
         st.success("✅ Login successful!")
         st.rerun()
     except Exception as e:
@@ -213,7 +202,6 @@ def signup_user(email, password, full_name, phone):
             }
         })
         st.session_state.user = res.user
-        st.query_params["logged_in_user"] = email
         st.success("✅ Account created successfully!")
         st.rerun()
     except Exception as e:
@@ -476,8 +464,6 @@ with st.sidebar:
 
     st.markdown("<br>"*2, unsafe_allow_html=True)
     if st.button("🚪 Logout", use_container_width=True):
-        if "logged_in_user" in st.query_params:
-            del st.query_params["logged_in_user"]
         st.session_state.user = None
         st.session_state.auth_mode = "login"
         st.rerun()
@@ -842,7 +828,7 @@ if default_api_key:
 
             save_chat_to_supabase(st.session_state.current_session, "user", prompt_text)
 
-            with st.chat_message("user":
+            with st.chat_message("user"):
                 st.markdown(prompt_text)
                 if format_file:
                     st.info(f"📐 Custom Format Template: `{format_file.name}`")

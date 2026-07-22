@@ -28,7 +28,7 @@ if supabase_url and supabase_key:
     except Exception as e:
         st.error(f"Supabase connection error: {e}")
 
-# 🔐 STYLING FOR UNIFIED MODERN DARK UI & ABSOLUTE STICKY BOTTOM DECK
+# 🔐 ADVANCED CUSTOM STYLING FOR FIXATION & PREMIUM GEMINI/CHATGPT LOOK
 st.markdown("""
 <style>
     .stApp {
@@ -85,30 +85,19 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    /* Reserve space at bottom of main content so sticky dock doesn't overlap chat text */
+    /* Target main block bottom padding so scroll content doesn't get covered by fixed bar */
     .main .block-container {
-        padding-bottom: 300px !important;
+        padding-bottom: 320px !important;
     }
 
-    /* 📌 STICKY BOTTOM CONTROL DOCK TARGETING STREAMLIT CONTAINER */
-    div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stChatInput"]) {
-        position: fixed !important;
-        bottom: 0 !important;
-        left: 21rem !important;
-        right: 1.5rem !important;
-        background-color: #08090e !important;
-        border-top: 1px solid #1f222e !important;
-        border-radius: 16px 16px 0 0 !important;
-        padding: 16px 20px 10px 20px !important;
-        z-index: 999999 !important;
-        box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.85) !important;
-    }
-
-    @media (max-width: 992px) {
-        div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stChatInput"]) {
-            left: 1rem !important;
-            right: 1rem !important;
-        }
+    /* Fixed Bottom Control Deck Container Styling */
+    .bottom-deck-box {
+        background-color: #0a0b10;
+        border: 1px solid #1f222e;
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 -10px 30px rgba(0,0,0,0.7);
+        margin-top: 20px;
     }
 
     .welcome-hero {
@@ -251,6 +240,7 @@ if not st.session_state.user:
 current_user_email = st.session_state.user.email
 display_user_name = current_user_email.split('@')[0].capitalize()
 
+# Extract user name from metadata if available
 try:
     meta_name = st.session_state.user.user_metadata.get("full_name")
     if meta_name:
@@ -514,9 +504,10 @@ if api_key:
 
     elif menu == "💬 Case Studio":
         sessions = get_supabase_sessions()
+
         messages = get_supabase_chat_history(st.session_state.current_session)
 
-        # 🌟 HERO HOME SECTION (WHEN CHAT IS EMPTY)
+        # 🌟 EXACT HERO HOME SECTION (MATCHING USER SCREENSHOT PERFECTLY)
         if not messages:
             st.markdown(f"""
             <div class="welcome-hero">
@@ -561,7 +552,7 @@ if api_key:
                 </div>
                 """, unsafe_allow_html=True)
 
-        # 📜 CHAT MESSAGES DISPLAY AREA (SCROLLS INDEPENDENTLY)
+        # 📜 CHAT MESSAGES DISPLAY AREA (SCROLLS NATIVELY WHILE BOTTOM REMAINS FIXED)
         else:
             col_hdr1, col_hdr2 = st.columns([4, 1])
             with col_hdr1:
@@ -586,77 +577,87 @@ if api_key:
                             key=f"docx_{idx}"
                         )
 
-        # ----------------- 🎯 STICKY CONTROL DOCK IN SINGLE CONTAINER -----------------
-        dock_container = st.container()
-        with dock_container:
-            col_deck1, col_deck2, col_deck3 = st.columns(3)
-            
-            with col_deck1:
-                st.markdown("<span style='font-size: 12px; font-weight:600; color:#a855f7;'>📤 2. Upload Template</span>", unsafe_allow_html=True)
-                format_file = st.file_uploader("Template", type=["docx", "txt"], key=f"format_file_{st.session_state.uploader_key}", label_visibility="collapsed")
+        # ----------------- FIXED BOTTOM CONTROL DECK (GEMINI / CHATGPT STYLE) -----------------
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown('<div class="bottom-deck-box">', unsafe_allow_html=True)
+        
+        # 1. Main Ask Input Field
+        user_input = st.chat_input("💬 1. Ask Nyaya AI — Describe your case in detail...")
 
-            with col_deck2:
-                st.markdown("<span style='font-size: 12px; font-weight:600; color:#a855f7;'>📤 3. Upload Case Documents</span>", unsafe_allow_html=True)
-                case_file = st.file_uploader("Case Files / Photos", type=["docx", "txt", "jpg", "jpeg", "png"], key=f"case_file_{st.session_state.uploader_key}", label_visibility="collapsed")
-                if case_file:
-                    st.caption(f"📸 `{case_file.name}`")
+        # 2. Bottom 3-Card Deck (Template, Documents, Voice)
+        col_deck1, col_deck2, col_deck3 = st.columns(3)
+        
+        with col_deck1:
+            st.markdown("##### 📤 2. Upload Template")
+            st.caption("Upload format (e.g., section format, notice, petition format etc.)")
+            format_file = st.file_uploader("Template File", type=["docx", "txt"], key=f"format_file_{st.session_state.uploader_key}", label_visibility="collapsed")
 
-            with col_deck3:
-                st.markdown("<span style='font-size: 12px; font-weight:600; color:#a855f7;'>🎙️ Voice Assistant</span>", unsafe_allow_html=True)
-                voice_html = """
-                <div style="display: flex; gap: 6px; align-items: center; margin-top: 2px;">
-                    <button id="recordBtn" onclick="toggleRecord()" style="background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; border: none; padding: 5px 10px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 11px;">
-                        🎤 Speak
-                    </button>
-                    <span id="statusTxt" style="color: #a855f7; font-size: 10px;"></span>
-                </div>
-                <textarea id="speechOutput" placeholder="Voice text..." style="width: 100%; height: 32px; background-color: #0e1017; color: #ffffff; border: 1px solid #1f222e; border-radius: 6px; padding: 4px; font-size: 10px; resize: none; margin-top: 3px;"></textarea>
-                <script>
-                    var recognition;
-                    var isRecording = false;
-                    function toggleRecord() {
-                        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                            alert("Use Google Chrome.");
-                            return;
-                        }
-                        if (!isRecording) {
-                            var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                            recognition = new SpeechRecognition();
-                            recognition.continuous = true;
-                            recognition.interimResults = true;
-                            recognition.lang = 'hi-IN';
-                            recognition.onstart = function() {
-                                isRecording = true;
-                                document.getElementById('recordBtn').innerText = "🛑 Stop";
-                                document.getElementById('recordBtn').style.background = "#ef4444";
-                                document.getElementById('statusTxt').innerText = "Listening...";
-                            };
-                            recognition.onresult = function(event) {
-                                var transcript = '';
-                                for (var i = event.resultIndex; i < event.results.length; ++i) {
-                                    transcript += event.results[i][0].transcript;
-                                }
-                                document.getElementById('speechOutput').value = transcript;
-                            };
-                            recognition.onerror = function(event) {
-                                document.getElementById('statusTxt').innerText = "Error: " + event.error;
-                            };
-                            recognition.onend = function() {
-                                isRecording = false;
-                                document.getElementById('recordBtn').innerText = "🎤 Speak";
-                                document.getElementById('recordBtn').style.background = "linear-gradient(135deg, #7c3aed, #6366f1)";
-                                document.getElementById('statusTxt').innerText = "Done!";
-                            };
-                            recognition.start();
-                        } else {
-                            recognition.stop();
-                        }
+        with col_deck2:
+            st.markdown("##### 📤 3. Upload Case Documents")
+            st.caption("Upload documents or image related to your case for analysis.")
+            case_file = st.file_uploader("Case Files / Photos", type=["docx", "txt", "jpg", "jpeg", "png"], key=f"case_file_{st.session_state.uploader_key}", label_visibility="collapsed")
+            if case_file:
+                ext = case_file.name.split('.')[-1].lower()
+                if ext in ["jpg", "jpeg", "png"]:
+                    st.caption(f"📸 Selected: `{case_file.name}`")
+
+        with col_deck3:
+            st.markdown("##### 🎙️ Voice Assistant")
+            st.caption("Speak to Nyaya AI and get instant legal help.")
+            voice_html = """
+            <div style="text-align: center; margin-top: 5px;">
+                <button id="recordBtn" onclick="toggleRecord()" style="background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer; width: 100%;">
+                    🎤 Speak Now (Hindi/English)
+                </button>
+                <div id="statusTxt" style="color: #a855f7; font-size: 11px; margin-top: 4px;"></div>
+                <textarea id="speechOutput" placeholder="Voice text appears here... copy into chat box." style="width: 100%; height: 45px; background-color: #050508; color: #ffffff; border: 1px solid #1f222e; border-radius: 8px; padding: 6px; font-size: 12px; resize: none; margin-top: 5px;"></textarea>
+            </div>
+            <script>
+                var recognition;
+                var isRecording = false;
+                function toggleRecord() {
+                    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                        alert("Browser speech recognition not supported. Use Chrome.");
+                        return;
                     }
-                </script>
-                """
-                st.components.v1.html(voice_html, height=75)
+                    if (!isRecording) {
+                        var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                        recognition = new SpeechRecognition();
+                        recognition.continuous = true;
+                        recognition.interimResults = true;
+                        recognition.lang = 'hi-IN';
+                        recognition.onstart = function() {
+                            isRecording = true;
+                            document.getElementById('recordBtn').innerText = "🛑 Stop";
+                            document.getElementById('recordBtn').style.background = "#ef4444";
+                            document.getElementById('statusTxt').innerText = "🎙️ Listening...";
+                        };
+                        recognition.onresult = function(event) {
+                            var transcript = '';
+                            for (var i = event.resultIndex; i < event.results.length; ++i) {
+                                transcript += event.results[i][0].transcript;
+                            }
+                            document.getElementById('speechOutput').value = transcript;
+                        };
+                        recognition.onerror = function(event) {
+                            document.getElementById('statusTxt').innerText = "Error: " + event.error;
+                        };
+                        recognition.onend = function() {
+                            isRecording = false;
+                            document.getElementById('recordBtn').innerText = "🎤 Speak Now";
+                            document.getElementById('recordBtn').style.background = "linear-gradient(135deg, #7c3aed, #6366f1)";
+                            document.getElementById('statusTxt').innerText = "✅ Done! Copy text.";
+                        };
+                        recognition.start();
+                    } else {
+                        recognition.stop();
+                    }
+                }
+            </script>
+            """
+            st.components.v1.html(voice_html, height=130)
 
-            user_input = st.chat_input("💬 1. Ask Nyaya AI — Describe your case in detail...")
+        st.markdown('</div>', unsafe_allow_html=True)
 
         # ONLY EXECUTE WHEN THE SUBMIT ARROW (↑) IS CLICKED
         if user_input:

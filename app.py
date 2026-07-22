@@ -8,16 +8,8 @@ from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from supabase import create_client, Client
 from PIL import Image
-import extra_streamlit_components as stx
 
 st.set_page_config(page_title="Nyaya Assist AI", page_icon="⚖️", layout="wide")
-
-# 🍪 Cookie Manager for Auto-login Persistence
-@st.cache_resource(experimental_allow_widgets=True)
-def get_cookie_manager():
-    return stx.CookieManager()
-
-cookie_manager = get_cookie_manager()
 
 TEMPLATES_FOLDER = "master_templates"
 if not os.path.exists(TEMPLATES_FOLDER):
@@ -187,24 +179,11 @@ if "current_session" not in st.session_state:
     st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
 if "nav_menu" not in st.session_state:
     st.session_state.nav_menu = "💬 Case Studio"
-if "login_time" not in st.session_state:
-    st.session_state.login_time = datetime.datetime.now()
-
-# 🔄 AUTO-LOGIN CHECK FROM COOKIE
-saved_email = cookie_manager.get("user_email")
-if saved_email and not st.session_state.user:
-    class DummyUser:
-        def __init__(self, email):
-            self.email = email
-            self.user_metadata = {"full_name": email.split('@')[0].capitalize()}
-    st.session_state.user = DummyUser(saved_email)
 
 def login_user(email, password):
     try:
         res = supabase.auth.sign_in_with_password({"email": email, "password": password})
         st.session_state.user = res.user
-        st.session_state.login_time = datetime.datetime.now()
-        cookie_manager.set("user_email", email, expires_at=datetime.datetime.now() + datetime.timedelta(days=30))
         st.success("✅ Login successful!")
         st.rerun()
     except Exception as e:
@@ -223,8 +202,6 @@ def signup_user(email, password, full_name, phone):
             }
         })
         st.session_state.user = res.user
-        st.session_state.login_time = datetime.datetime.now()
-        cookie_manager.set("user_email", email, expires_at=datetime.datetime.now() + datetime.timedelta(days=30))
         st.success("✅ Account created successfully!")
         st.rerun()
     except Exception as e:
@@ -307,23 +284,6 @@ except Exception:
     pass
 
 user_initials = "".join([part[0].upper() for part in display_user_name.split()[:2]]) if display_user_name else "VT"
-
-# ⏱️ FREE TRIAL CHECK: Check if 1 hour has elapsed
-is_pro_user = False
-elapsed_time = (datetime.datetime.now() - st.session_state.login_time).total_seconds()
-MAX_FREE_SECONDS = 3600 # 1 Hour
-
-if not is_pro_user and elapsed_time > MAX_FREE_SECONDS:
-    st.markdown("""
-    <div style="text-align: center; padding: 100px 20px;">
-        <h1 style="color: #a855f7;">⏳ Free Daily Trial Expired</h1>
-        <p style="color: #9ca3af; font-size: 16px;">Your 1-hour free daily trial for Nyaya Assist AI has ended.</p>
-        <p style="color: #ffffff; font-size: 15px;">Upgrade to Pro to unlock unlimited 24/7 access and all advanced legal drafting tools.</p>
-    </div>
-    """, unsafe_allow_html=True)
-    if st.button("🚀 Upgrade to Pro Now", use_container_width=True):
-        st.info("Pro Plan subscription gateway will be integrated soon!")
-    st.stop()
 
 def save_chat_to_supabase(session_name, role, content):
     if supabase:
@@ -504,7 +464,6 @@ with st.sidebar:
 
     st.markdown("<br>"*2, unsafe_allow_html=True)
     if st.button("🚪 Logout", use_container_width=True):
-        cookie_manager.delete("user_email")
         st.session_state.user = None
         st.session_state.auth_mode = "login"
         st.rerun()
@@ -514,7 +473,7 @@ with st.sidebar:
 def show_profile_dialog():
     st.markdown(f"### Advocate: **{display_user_name}**")
     st.markdown(f"📧 **Email:** `{current_user_email}`")
-    st.markdown("👑 **Subscription Status:** `Free Tier` *(1-Hour Daily Trial Active)*")
+    st.markdown("👑 **Subscription Status:** `Free Tier`")
     
     st.markdown("---")
     st.markdown("#### 🔒 Change Password")

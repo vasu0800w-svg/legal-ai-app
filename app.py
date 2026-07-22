@@ -31,13 +31,10 @@ if supabase_url and supabase_key:
 # 🔐 STYLING FOR MODERN DARK UI
 st.markdown("""
 <style>
-    /* Dark Theme Background Override */
     .stApp {
         background-color: #0b0c10;
         color: #ffffff;
     }
-    
-    /* Input Fields Styling */
     .stTextInput > div > div > input {
         background-color: #16181e !important;
         color: #ffffff !important;
@@ -49,8 +46,6 @@ st.markdown("""
         border-color: #8b5cf6 !important;
         box-shadow: 0 0 8px rgba(139, 92, 246, 0.4) !important;
     }
-    
-    /* Buttons Styling */
     .stButton > button {
         background: linear-gradient(135deg, #7c3aed, #6366f1) !important;
         color: white !important;
@@ -65,23 +60,6 @@ st.markdown("""
     .stButton > button:hover {
         background: linear-gradient(135deg, #6d28d9, #4f46e5) !important;
     }
-    
-    /* Social Buttons */
-    .social-btn {
-        background-color: #16181e;
-        border: 1px solid #2a2d37;
-        border-radius: 12px;
-        padding: 10px;
-        text-align: center;
-        margin-bottom: 10px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-    }
-    
-    /* Divider Text */
     .divider {
         display: flex;
         align-items: center;
@@ -132,12 +110,25 @@ def signup_user(email, password, full_name, phone):
     except Exception as e:
         st.error(f"Signup failed: {e}")
 
+def login_with_google():
+    try:
+        # Supabase Google OAuth Redirect
+        res = supabase.auth.sign_in_with_oauth({
+            "provider": "google",
+            "options": {
+                "redirect_to": "https://nyaya-ai-studio.streamlit.app"
+            }
+        })
+        if res.url:
+            st.markdown(f'<meta http-equiv="refresh" content="0;url={res.url}">', unsafe_allow_html=True)
+    except Exception as e:
+        st.error(f"Google Login error: {e}")
+
 # ----------------- LOGIN / SIGNUP SCREEN -----------------
 if not st.session_state.user:
     st.markdown("<br>", unsafe_allow_html=True)
     
     if st.session_state.auth_mode == "login":
-        # Branding
         st.markdown("""
         <div style="text-align: center;">
             <div style="font-size: 50px;">⚖️</div>
@@ -152,10 +143,6 @@ if not st.session_state.user:
         email = st.text_input("Email Address", placeholder="name@example.com", key="login_email")
         password = st.text_input("Password", type="password", placeholder="••••••••", key="login_pass")
         
-        col_fg1, col_fg2 = st.columns([2, 1])
-        with col_fg2:
-            st.markdown("<p style='text-align: right;'><a href='#' style='color: #a855f7; text-decoration: none; font-size: 12px;'>Forgot Password?</a></p>", unsafe_allow_html=True)
-            
         if st.button("Login  ➔", key="btn_login"):
             if email and password and supabase:
                 login_user(email, password)
@@ -164,9 +151,8 @@ if not st.session_state.user:
                 
         st.markdown("<div class='divider'>or continue with</div>", unsafe_allow_html=True)
         
-        st.markdown("""
-        <div class="social-btn">🌐 Continue with Google</div>
-        """, unsafe_allow_html=True)
+        if st.button("🌐 Continue with Google", key="google_login_btn"):
+            login_with_google()
         
         st.markdown("<br>", unsafe_allow_html=True)
         col_s1, col_s2, col_s3 = st.columns([1, 2, 1])
@@ -176,7 +162,6 @@ if not st.session_state.user:
                 st.rerun()
 
     else:
-        # Sign Up
         st.markdown("""
         <div style="text-align: left;">
             <h2 style="margin: 0; font-weight: 700; color: #ffffff;">Create your account</h2>
@@ -204,9 +189,8 @@ if not st.session_state.user:
                 
         st.markdown("<div class='divider'>or continue with</div>", unsafe_allow_html=True)
         
-        st.markdown("""
-        <div class="social-btn">🌐 Continue with Google</div>
-        """, unsafe_allow_html=True)
+        if st.button("🌐 Continue with Google", key="google_signup_btn"):
+            login_with_google()
         
         st.markdown("<br>", unsafe_allow_html=True)
         col_s1, col_s2, col_s3 = st.columns([1, 2, 1])
@@ -228,10 +212,8 @@ if st.sidebar.button("🚪 Logout"):
     st.rerun()
 
 menu = st.sidebar.radio("Navigation", ["💬 Case Studio", "📂 Case History", "⚙️ Settings"])
-
 api_key = st.sidebar.text_input("Enter Gemini API Key", value=default_api_key, type="password")
 
-# Database Helper Functions
 def save_chat_to_supabase(session_name, role, content):
     if supabase:
         try:
@@ -367,11 +349,8 @@ if api_key:
 
     if menu == "⚙️ Settings":
         st.header("⚙️ Application Settings")
-        
-        st.subheader("👤 Profile Information")
         adv_name_input = st.text_input("Advocate Name:", value=st.session_state.advocate_name)
         court_input = st.text_input("Default Court Name:", value=st.session_state.default_court)
-        
         selected_lang = st.selectbox("Preferred AI Language", [
             "Pure Hindi (Formal Legal)",
             "Hinglish / Bilingual (Hindi & English)",
@@ -398,7 +377,6 @@ if api_key:
 
     elif menu == "💬 Case Studio":
         st.title("⚖️ Nyaya Assist AI")
-        
         sessions = get_supabase_sessions()
         if "current_session" not in st.session_state:
             st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
@@ -414,7 +392,6 @@ if api_key:
                 st.rerun()
 
         st.markdown("---")
-
         messages = get_supabase_chat_history(current_chat_name)
 
         if not messages:
@@ -423,7 +400,6 @@ if api_key:
         for idx, message in enumerate(messages):
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
-                
                 upper_content = message["content"].upper()
                 if message["role"] == "assistant" and "START_DRAFT" in upper_content:
                     docx_data = create_court_ready_docx(message["content"])
@@ -436,7 +412,6 @@ if api_key:
                     )
 
         st.markdown("---")
-
         user_input = st.chat_input("यहाँ केस की बात लिखें...")
 
         if user_input:
@@ -449,7 +424,6 @@ if api_key:
             with st.chat_message("assistant"):
                 message_placeholder = st.empty()
                 full_response = ""
-                
                 try:
                     response = model.generate_content(prompt_parts, stream=True)
                     for chunk in response:

@@ -1,6 +1,5 @@
 import streamlit as st
 import google.generativeai as genai
-import streamlit.components.v1 as components
 import datetime
 import io
 import os
@@ -112,17 +111,24 @@ def signup_user(email, password, full_name, phone):
 
 def login_with_google():
     try:
-        # Supabase Google OAuth Redirect
-        res = supabase.auth.sign_in_with_oauth({
+        # Proper OAuth URL Generation
+        res = supabase.auth.get_oauth_sign_in_url({
             "provider": "google",
             "options": {
                 "redirect_to": "https://nyaya-ai-studio.streamlit.app"
             }
         })
-        if res.url:
+        if res and hasattr(res, 'url') and res.url:
             st.markdown(f'<meta http-equiv="refresh" content="0;url={res.url}">', unsafe_allow_html=True)
+            st.info("Redirecting to Google Sign-In...")
+        else:
+            # Fallback URL Construction
+            google_url = f"{supabase_url}/auth/v1/authorize?provider=google&redirect_to=https://nyaya-ai-studio.streamlit.app"
+            st.markdown(f'<meta http-equiv="refresh" content="0;url={google_url}">', unsafe_allow_html=True)
     except Exception as e:
-        st.error(f"Google Login error: {e}")
+        # Fallback if method fails
+        google_url = f"{supabase_url}/auth/v1/authorize?provider=google&redirect_to=https://nyaya-ai-studio.streamlit.app"
+        st.markdown(f'<meta http-equiv="refresh" content="0;url={google_url}">', unsafe_allow_html=True)
 
 # ----------------- LOGIN / SIGNUP SCREEN -----------------
 if not st.session_state.user:

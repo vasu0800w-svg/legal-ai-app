@@ -16,9 +16,14 @@ if not os.path.exists(TEMPLATES_FOLDER):
     os.makedirs(TEMPLATES_FOLDER)
 
 # 🔑 Fetch Secrets
-default_api_key = st.secrets.get("GEMINI_API_KEY", "")
+api_key = st.secrets.get("GEMINI_API_KEY", "")
 supabase_url = st.secrets.get("SUPABASE_URL", "")
 supabase_key = st.secrets.get("SUPABASE_KEY", "")
+
+# Configure Gemini with the new AQ. key
+if api_key:
+    os.environ["GEMINI_API_KEY"] = api_key
+    genai.configure(api_key=api_key)
 
 # 🗄️ Supabase Initialization
 supabase: Client = None
@@ -220,11 +225,6 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     menu = st.radio("Navigation", ["💬 Case Studio", "📂 Case History", "⚙️ Settings"], label_visibility="collapsed")
-    
-    st.markdown("---")
-    
-    with st.expander("🔑 Gemini API Settings"):
-        api_key = st.text_input("API Key", value=default_api_key, type="password")
 
     st.markdown("<br>"*3, unsafe_allow_html=True)
     if st.button("🚪 Log Out", use_container_width=True):
@@ -347,9 +347,6 @@ def create_court_ready_docx(text):
     return bio
 
 if api_key:
-    os.environ["GEMINI_API_KEY"] = api_key
-    genai.configure(api_key=api_key)
-    
     if "app_lang" not in st.session_state:
         st.session_state.app_lang = "Pure Hindi (Formal Legal)"
     if "advocate_name" not in st.session_state:
@@ -617,4 +614,4 @@ if api_key:
                 save_chat_to_supabase(current_chat_name, "assistant", full_response)
                 st.rerun()
 else:
-    st.info("👈 Please enter your Gemini API Key in the sidebar settings.")
+    st.info("👈 Please enter your Gemini API Key in Streamlit Secrets.")

@@ -109,18 +109,25 @@ def signup_user(email, password, full_name, phone):
     except Exception as e:
         st.error(f"Signup failed: {e}")
 
-def login_with_google():
-    if supabase_url and supabase_key:
-        # Pass both apikey and redirect parameters directly
-        redirect_app_url = "https://nyaya-ai-studio.streamlit.app"
-        google_auth_url = f"{supabase_url}/auth/v1/authorize?provider=google&redirect_to={redirect_app_url}&apikey={supabase_key}"
-        st.markdown(f'<meta http-equiv="refresh" content="0;url={google_auth_url}">', unsafe_allow_html=True)
-    else:
-        st.error("Supabase URL or Key missing in Secrets.")
+def get_google_auth_url():
+    if supabase:
+        try:
+            # Using official Supabase SDK function for OAuth URL
+            res = supabase.auth.sign_in_with_oauth({
+                "provider": "google",
+                "options": {
+                    "redirect_to": "https://nyaya-ai-studio.streamlit.app"
+                }
+            })
+            return res.url
+        except Exception as e:
+            return None
+    return None
 
 # ----------------- LOGIN / SIGNUP SCREEN -----------------
 if not st.session_state.user:
     st.markdown("<br>", unsafe_allow_html=True)
+    google_url = get_google_auth_url()
     
     if st.session_state.auth_mode == "login":
         st.markdown("""
@@ -145,8 +152,16 @@ if not st.session_state.user:
                 
         st.markdown("<div class='divider'>or continue with</div>", unsafe_allow_html=True)
         
-        if st.button("🌐 Continue with Google", key="google_login_btn"):
-            login_with_google()
+        if google_url:
+            st.markdown(f'''
+            <a href="{google_url}" target="_self" style="text-decoration: none;">
+                <div style="background-color: #16181e; border: 1px solid #2a2d37; border-radius: 12px; padding: 12px; text-align: center; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    🌐 Continue with Google
+                </div>
+            </a>
+            ''', unsafe_allow_html=True)
+        else:
+            st.error("Google Auth unavailable.")
         
         st.markdown("<br>", unsafe_allow_html=True)
         col_s1, col_s2, col_s3 = st.columns([1, 2, 1])
@@ -183,8 +198,14 @@ if not st.session_state.user:
                 
         st.markdown("<div class='divider'>or continue with</div>", unsafe_allow_html=True)
         
-        if st.button("🌐 Continue with Google", key="google_signup_btn"):
-            login_with_google()
+        if google_url:
+            st.markdown(f'''
+            <a href="{google_url}" target="_self" style="text-decoration: none;">
+                <div style="background-color: #16181e; border: 1px solid #2a2d37; border-radius: 12px; padding: 12px; text-align: center; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    🌐 Continue with Google
+                </div>
+            </a>
+            ''', unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
         col_s1, col_s2, col_s3 = st.columns([1, 2, 1])

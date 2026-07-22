@@ -97,6 +97,21 @@ st.markdown("""
         color: #ffffff !important;
     }
 
+    /* 🎯 PERFECT CIRCULAR AVATAR BUTTON FIX FOR PROFILE */
+    div[data-testid="column"]:nth-child(3) .stButton > button {
+        border-radius: 50% !important;
+        width: 42px !important;
+        height: 42px !important;
+        padding: 0 !important;
+        font-weight: 700 !important;
+        font-size: 14px !important;
+        line-height: 42px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-left: auto !important;
+    }
+
     .pro-banner {
         background: linear-gradient(135deg, #1e1b4b, #0f172a);
         border: 1px solid #3b0764;
@@ -107,21 +122,6 @@ st.markdown("""
         justify-content: space-between;
         margin-bottom: 20px;
         box-shadow: 0 4px 14px rgba(0,0,0,0.3);
-    }
-
-    .user-avatar {
-        background: linear-gradient(135deg, #7c3aed, #6366f1);
-        color: white;
-        border-radius: 50%;
-        width: 38px;
-        height: 38px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 14px;
-        box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
-        cursor: pointer;
     }
 
     .welcome-hero {
@@ -495,13 +495,13 @@ def show_profile_dialog():
         st.info("Pro Plan subscription gateway will be integrated soon!")
 
 # ----------------- TOP APP BAR -----------------
-col_top_h1, col_top_h2, col_top_h3 = st.columns([4, 1, 1])
+col_top_h1, col_top_h2, col_top_h3 = st.columns([5, 1, 1])
 with col_top_h1:
     st.markdown("### Nyaya Assist <span style='color:#a855f7;'>AI</span>", unsafe_allow_html=True)
 with col_top_h2:
-    st.markdown("<div style='text-align: right; padding-top: 6px; color: #9ca3af; font-size: 14px;'>🔔</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: right; padding-top: 10px; color: #9ca3af; font-size: 16px;'>🔔</div>", unsafe_allow_html=True)
 with col_top_h3:
-    if st.button(user_initials, key="btn_open_profile_modal", use_container_width=True):
+    if st.button(user_initials, key="btn_open_profile_modal"):
         show_profile_dialog()
 
 if default_api_key:

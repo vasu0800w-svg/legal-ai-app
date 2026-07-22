@@ -7,6 +7,7 @@ from docx import Document
 from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from supabase import create_client, Client
+from PIL import Image
 
 st.set_page_config(page_title="Nyaya Assist AI", page_icon="⚖️", layout="wide")
 
@@ -87,9 +88,6 @@ st.markdown("""
         border-radius: 14px;
         padding: 16px 20px;
         margin-bottom: 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
     }
     .streamlit-expanderHeader {
         background-color: #16181e !important;
@@ -177,7 +175,7 @@ if not st.session_state.user:
             full_name = st.text_input("Full Name", placeholder="Adv. Rajesh Sharma", key="signup_name")
             email = st.text_input("Email", placeholder="name@example.com", key="signup_email")
             phone = st.text_input("Phone Number (Optional)", placeholder="+91 98765 43210", key="signup_phone")
-            password = st.text_input("Password", type="password", placeholder="••••••••", key="signup_pass")
+            password = st.text_input("Password", type="password", placeholder="••••••••", key="signup_cpass")
             confirm_pass = st.text_input("Confirm Password", type="password", placeholder="••••••••", key="signup_cpass")
             
             agree = st.checkbox("I agree to the Terms of Service and Privacy Policy")
@@ -286,6 +284,24 @@ def load_all_local_templates():
                     pass
     return template_data
 
+def read_uploaded_file_content(uploaded_file):
+    if uploaded_file is None:
+        return "", None
+    file_type = uploaded_file.name.split('.')[-1].lower()
+    content = ""
+    image_obj = None
+    
+    if file_type == "txt":
+        content = uploaded_file.read().decode("utf-8")
+    elif file_type == "docx":
+        doc = Document(uploaded_file)
+        content = '\n'.join([p.text for p in doc.paragraphs])
+    elif file_type in ["jpg", "jpeg", "png"]:
+        image_obj = Image.open(uploaded_file)
+        content = f"[IMAGE FILE ATTACHED: {uploaded_file.name}]"
+        
+    return content, image_obj
+
 def create_court_ready_docx(text):
     doc = Document()
     section = doc.sections[0]
@@ -344,7 +360,7 @@ if api_key:
 
     system_instruction = f"""
     ROLE & OBJECTIVE:
-    You are an elite Indian Senior Advocate and Master Legal Draftsman assisting a veteran attorney.
+    You are a legendary Senior Advocate & Legal Strategist of the Supreme Court of India. You possess sharp intellect like ChatGPT's top legal reasoning models.
     Response Language Style: {st.session_state.app_lang}.
     
     MANDATORY DRAFTING DETAILS:
@@ -354,10 +370,17 @@ if api_key:
     PERMANENT MASTER TEMPLATES IN DATABASE:
     {local_templates_text if local_templates_text else "Default Standard Court Layout (High Court / District Court Format)"}
     
+    DEEP ANALYTICAL RESPONSE STRUCTURE:
+    When user uploads case files, photos of documents, or asks complex legal questions:
+    1. 🔍 **DEEP CASE ANALYSIS & LOOPHOLES:** Highlight strong facts, weaknesses, and loopholes in the opponent's case.
+    2. 🎯 **STRATEGIC CROSS-EXAMINATION QUESTIONS:** Provide 5 to 7 sharp, high-impact questions to ask the opponent or witnesses in court.
+    3. ⚖️ **APPLICABLE SECTIONS & PRECEDENTS:** Mention key legal sections (IPC/BNS, CrPC/BNSS, CPC, Evidence Act/BSA) and strategic legal points.
+    4. 📜 **FORMAL COURT DRAFT:** ALWAYS generate a full court draft based on uploaded master format (if provided) or standard Indian court format (if no format uploaded).
+    
     OUTPUT FORMATTING:
-    Final court draft MUST be strictly enclosed inside:
+    Final legal draft MUST ALWAYS be strictly enclosed inside:
       START_DRAFT
-      ...
+      ... (Full legal court draft content) ...
       END_DRAFT
     """
     
@@ -414,10 +437,8 @@ if api_key:
 
         st.markdown("""
         <div class="chat-header-card">
-            <div>
-                <h3 style="margin: 0; font-size: 20px; font-weight: 700; color: #ffffff;">💬 Precision Legal Studio</h3>
-                <p style="margin: 0; font-size: 13px; color: #9ca3af;">AI-Powered Case Analysis & Court-Ready Drafting</p>
-            </div>
+            <h3 style="margin: 0; font-size: 20px; font-weight: 700; color: #ffffff;">💬 Deep Legal Analysis & Drafting Studio</h3>
+            <p style="margin: 0; font-size: 13px; color: #9ca3af;">Upload Master Format, Case Documents, Photos & Evidence for Deep AI Analysis</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -432,16 +453,30 @@ if api_key:
                 st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
                 st.rerun()
 
-        st.markdown("<br>", unsafe_allow_html=True)
+        # 📄 DUAL FILE & PHOTO UPLOAD SECTION
+        st.markdown("---")
+        col_f1, col_f2 = st.columns(2)
+        
+        with col_f1:
+            st.markdown("##### 1. 📐 Custom Format Template (Optional)")
+            st.caption("अपलोड न करने पर AI डिफ़ॉल्ट कोर्ट फ़ॉर्मेट का उपयोग करेगा")
+            format_file = st.file_uploader("Upload Format (.docx, .txt)", type=["docx", "txt"], key="format_file")
+
+        with col_f2:
+            st.markdown("##### 2. 📸 Case Documents / Evidence Photos")
+            st.caption("नोटिस, केस फाइल्स या साक्ष्य की फोटो/स्कैन अपलोड करें (.jpg, .png, .docx, .txt)")
+            case_file = st.file_uploader("Upload Case Docs or Photos", type=["docx", "txt", "jpg", "jpeg", "png"], key="case_file")
+
+        st.markdown("---")
 
         messages = get_supabase_chat_history(current_chat_name)
 
         if not messages:
             st.markdown("""
-            <div style="text-align: center; padding: 40px; background-color: #16181e; border: 1px dashed #2a2d37; border-radius: 14px;">
+            <div style="text-align: center; padding: 30px; background-color: #16181e; border: 1px dashed #2a2d37; border-radius: 14px;">
                 <div style="font-size: 40px;">⚖️</div>
-                <h4 style="margin: 10px 0 5px 0; color: #ffffff;">New Case File Active</h4>
-                <p style="color: #6b7280; font-size: 14px;">Enter case facts, upload evidence, or ask legal questions below to generate formal court drafts.</p>
+                <h4 style="margin: 10px 0 5px 0; color: #ffffff;">Deep Legal Brain Ready</h4>
+                <p style="color: #6b7280; font-size: 14px;">Upload photos of documents/case files for ChatGPT-level analysis, cross-questions, loopholes, and court drafts.</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -462,20 +497,78 @@ if api_key:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        user_input = st.chat_input("केस के तथ्य, धाराएं या ड्राफ्टिंग विवरण लिखें...")
+        # 🎙️ VOICE INPUT INTEGRATION
+        st.markdown("##### 🎙️ Voice Assistant / बोलकर टाइप करें:")
+        voice_js = """
+        <script>
+            function startDictation() {
+                if (window.hasOwnProperty('webkitSpeechRecognition')) {
+                    var recognition = new webkitSpeechRecognition();
+                    recognition.continuous = false;
+                    recognition.interimResults = false;
+                    recognition.lang = "hi-IN";
+                    recognition.start();
 
-        if user_input:
-            prompt_parts = [user_input]
-            save_chat_to_supabase(current_chat_name, "user", user_input)
+                    recognition.onresult = function(e) {
+                        var spokenText = e.results[0][0].transcript;
+                        var chatInput = window.parent.document.querySelector('textarea[data-testid="stChatInputTextArea"]');
+                        if (chatInput) {
+                            chatInput.value = spokenText;
+                            chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                    };
+                    recognition.onerror = function(e) { recognition.stop(); }
+                }
+            }
+        </script>
+        <button onclick="startDictation()" style="background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+            🎤 स्टार्ट वॉइस टाइपिंग (Hindi/English)
+        </button>
+        """
+        st.components.v1.html(voice_js, height=50)
+
+        user_input = st.chat_input("यहाँ केस के तथ्य या एनालिसिस निर्देश लिखें...")
+
+        if user_input or format_file or case_file:
+            format_content, _ = read_uploaded_file_content(format_file) if format_file else ("", None)
+            case_content, case_image = read_uploaded_file_content(case_file) if case_file else ("", None)
+
+            combined_prompt = ""
+            if format_content:
+                combined_prompt += f"\n\n--- CUSTOM FORMAT TEMPLATE ATTACHED ---\n{format_content}\n"
+            else:
+                combined_prompt += "\n\n--- NO CUSTOM FORMAT UPLOADED. USE BUILT-IN STANDARD COURT DRAFT FORMAT ---\n"
+                
+            if case_content:
+                combined_prompt += f"\n\n--- CASE FILES & EVIDENCE ATTACHED ---\n{case_content}\n"
+                
+            if user_input:
+                combined_prompt += f"\n\nUSER INSTRUCTION: {user_input}"
+            else:
+                combined_prompt += "\n\nUSER INSTRUCTION: Perform deep legal case analysis, suggest loopholes, cross-questions, and build full court draft."
+
+            save_chat_to_supabase(current_chat_name, "user", user_input if user_input else "Uploaded Case/Photos for Deep AI Analysis")
 
             with st.chat_message("user"):
-                st.markdown(user_input)
+                if user_input:
+                    st.markdown(user_input)
+                if format_file:
+                    st.info(f"📐 Custom Format Template: `{format_file.name}`")
+                if case_file:
+                    st.info(f"📸 Case Document / Photo: `{case_file.name}`")
+                    if case_image:
+                        st.image(case_image, width=300)
 
             with st.chat_message("assistant"):
                 message_placeholder = st.empty()
                 full_response = ""
                 try:
-                    response = model.generate_content(prompt_parts, stream=True)
+                    # Input payload (supports image if present)
+                    prompt_payload = [combined_prompt]
+                    if case_image:
+                        prompt_payload.append(case_image)
+                        
+                    response = model.generate_content(prompt_payload, stream=True)
                     for chunk in response:
                         full_response += chunk.text
                         message_placeholder.markdown(full_response + "▌")

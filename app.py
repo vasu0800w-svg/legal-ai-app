@@ -101,8 +101,8 @@ if "uploader_key" not in st.session_state:
     st.session_state.uploader_key = 0
 if "current_session" not in st.session_state:
     st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
-if "selected_nav" not in st.session_state:
-    st.session_state.selected_nav = "💬 Case Studio"
+if "nav_menu" not in st.session_state:
+    st.session_state.nav_menu = "💬 Case Studio"
 
 def login_user(email, password):
     try:
@@ -201,6 +201,8 @@ if not st.session_state.user:
 # ----------------- LOGGED IN APPLICATION DASHBOARD -----------------
 current_user_email = st.session_state.user.email
 
+nav_options = ["💬 Case Studio", "📂 Chat History", "⚙️ Settings"]
+
 with st.sidebar:
     st.markdown("""
     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
@@ -219,7 +221,10 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    menu = st.radio("Navigation", ["💬 Case Studio", "📂 Chat History", "⚙️ Settings"], key="selected_nav", label_visibility="collapsed")
+    # Safe navigation index lookup
+    curr_idx = nav_options.index(st.session_state.nav_menu) if st.session_state.nav_menu in nav_options else 0
+    menu = st.radio("Navigation", nav_options, index=curr_idx, label_visibility="collapsed")
+    st.session_state.nav_menu = menu
     
     st.markdown("---")
     
@@ -435,7 +440,7 @@ if api_key:
                     with col_h1:
                         if st.button(f"💬 Open & Resume Chat ({s})", key=f"open_{s}"):
                             st.session_state.current_session = s
-                            st.session_state.selected_nav = "💬 Case Studio"
+                            st.session_state.nav_menu = "💬 Case Studio"
                             st.rerun()
                     with col_h2:
                         if st.button("🗑️ Delete Chat", key=f"del_{s}"):

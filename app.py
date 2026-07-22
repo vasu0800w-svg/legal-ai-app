@@ -346,6 +346,22 @@ def create_court_ready_docx(text):
     bio.seek(0)
     return bio
 
+def generate_ai_response(prompt_payload, system_instruction):
+    # 🛡️ Dynamic Model Selector to prevent 404 Error
+    candidate_models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]
+    for m_name in candidate_models:
+        try:
+            m = genai.GenerativeModel(model_name=m_name, system_instruction=system_instruction)
+            return m.generate_content(prompt_payload, stream=True)
+        except Exception as err:
+            if "404" in str(err):
+                continue
+            else:
+                raise err
+    # Fallback to default
+    m = genai.GenerativeModel(model_name="gemini-1.5-flash", system_instruction=system_instruction)
+    return m.generate_content(prompt_payload, stream=True)
+
 if api_key:
     os.environ["GEMINI_API_KEY"] = api_key
     genai.configure(api_key=api_key)
@@ -384,13 +400,6 @@ if api_key:
       ... (Full legal court draft content) ...
       END_DRAFT
     """
-    
-    # 🌟 Updated to supported Gemini model for current API
-    model = genai.GenerativeModel(
-        model_name="gemini-2.5-flash",
-        system_instruction=system_instruction,
-        generation_config={"temperature": 0.0}
-    )
 
     if menu == "⚙️ Settings":
         st.markdown("## ⚙️ App & Profile Settings")
@@ -606,7 +615,7 @@ if api_key:
                     if case_image:
                         prompt_payload.append(case_image)
                         
-                    response = model.generate_content(prompt_payload, stream=True)
+                    response = generate_ai_response(prompt_payload, system_instruction)
                     for chunk in response:
                         full_response += chunk.text
                         message_placeholder.markdown(full_response + "▌")

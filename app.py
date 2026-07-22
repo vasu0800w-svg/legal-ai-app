@@ -89,14 +89,6 @@ st.markdown("""
         padding: 16px 20px;
         margin-bottom: 20px;
     }
-    .preview-card {
-        background-color: #16181e;
-        border: 1px solid #2a2d37;
-        border-radius: 12px;
-        padding: 15px;
-        margin-top: 15px;
-        margin-bottom: 15px;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -456,63 +448,18 @@ if api_key:
                 st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
                 st.rerun()
 
-        # 📄 DUAL FILE & PHOTO UPLOAD SECTION
-        st.markdown("---")
-        col_f1, col_f2 = st.columns(2)
-        
-        with col_f1:
-            st.markdown("##### 1. 📐 Custom Format Template (Optional)")
-            st.caption("अपलोड न करने पर AI डिफ़ॉल्ट कोर्ट फ़ॉर्मेट का उपयोग करेगा")
-            format_file = st.file_uploader("Upload Format (.docx, .txt)", type=["docx", "txt"], key="format_file")
-
-        with col_f2:
-            st.markdown("##### 2. 📸 Case Documents / Evidence Photos")
-            st.caption("नोटिस, केस फाइल्स या साक्ष्य की फोटो/स्कैन अपलोड करें (.jpg, .png, .docx, .txt)")
-            case_file = st.file_uploader("Upload Case Docs or Photos", type=["docx", "txt", "jpg", "jpeg", "png"], key="case_file")
-
-        # 🖼️ STAGING AREA FOR ATTACHMENTS (PREVIEW BEFORE SENDING)
-        submit_uploaded_attachment = False
-        attachment_note = ""
-
-        if format_file or case_file:
-            st.markdown('<div class="preview-card">', unsafe_allow_html=True)
-            st.markdown("#### 📎 Attachments Preview & Custom Instructions")
-            
-            p_col1, p_col2 = st.columns(2)
-            with p_col1:
-                if format_file:
-                    st.success(f"📐 **Master Format:** `{format_file.name}`")
-            with p_col2:
-                if case_file:
-                    st.info(f"📸 **Case Document/Photo:** `{case_file.name}`")
-                    file_ext = case_file.name.split('.')[-1].lower()
-                    if file_ext in ["jpg", "jpeg", "png"]:
-                        st.image(Image.open(case_file), caption="Uploaded Document Preview", width=250)
-
-            attachment_note = st.text_area(
-                "📝 इस अटैचमेंट/फ़ोटो के लिए विशिष्ट निर्देश (Optional):", 
-                placeholder="उदा. इस फोटो के महत्वपूर्ण तथ्यों का विश्लेषण करें या इस नोटिस का जवाब बनाएं...",
-                key="attachment_note"
-            )
-            
-            if st.button("🚀 Send Files & Instructions to AI", use_container_width=True):
-                submit_uploaded_attachment = True
-                
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        st.markdown("---")
-
         messages = get_supabase_chat_history(current_chat_name)
 
-        if not messages and not (format_file or case_file):
+        if not messages:
             st.markdown("""
-            <div style="text-align: center; padding: 30px; background-color: #16181e; border: 1px dashed #2a2d37; border-radius: 14px;">
+            <div style="text-align: center; padding: 30px; background-color: #16181e; border: 1px dashed #2a2d37; border-radius: 14px; margin-bottom: 20px;">
                 <div style="font-size: 40px;">⚖️</div>
                 <h4 style="margin: 10px 0 5px 0; color: #ffffff;">Deep Legal Brain Ready</h4>
                 <p style="color: #6b7280; font-size: 14px;">Upload photos of documents/case files for ChatGPT-level analysis, cross-questions, loopholes, and court drafts.</p>
             </div>
             """, unsafe_allow_html=True)
 
+        # 📜 CHAT MESSAGES DISPLAY AREA
         for idx, message in enumerate(messages):
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
@@ -530,11 +477,11 @@ if api_key:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # 🎙️ RELIABLE NATIVE VOICE INTEGRATION
+        # 🎙️ VOICE TYPING ASSISTANT
         st.markdown("##### 🎙️ Voice Typing Assistant (बोलकर टाइप करें):")
         
         voice_html = """
-        <div style="background-color: #16181e; padding: 15px; border-radius: 12px; border: 1px solid #2a2d37;">
+        <div style="background-color: #16181e; padding: 15px; border-radius: 12px; border: 1px solid #2a2d37; margin-bottom: 20px;">
             <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
                 <button id="recordBtn" onclick="toggleRecord()" style="background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer;">
                     🎤 स्टार्ट वॉइस रिकॉर्डिंग (Hindi/English)
@@ -596,11 +543,24 @@ if api_key:
         """
         st.components.v1.html(voice_html, height=160)
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        user_input = st.chat_input("यहाँ केस के तथ्य, निर्देश या वॉइस से बोला हुआ टेक्स्ट पेस्ट करें...")
+        # 📎 ATTACHMENT BOX MOVED TO THE BOTTOM (JUST ABOVE CHAT INPUT)
+        with st.expander("📎 Attach Photos / Case Files / Custom Format (Optional)", expanded=False):
+            col_f1, col_f2 = st.columns(2)
+            with col_f1:
+                format_file = st.file_uploader("1. Custom Format (.docx, .txt)", type=["docx", "txt"], key="format_file")
+            with col_f2:
+                case_file = st.file_uploader("2. Case Docs or Photos (.jpg, .png, .docx, .txt)", type=["docx", "txt", "jpg", "jpeg", "png"], key="case_file")
+            
+            if case_file:
+                ext = case_file.name.split('.')[-1].lower()
+                if ext in ["jpg", "jpeg", "png"]:
+                    st.image(Image.open(case_file), caption=f"Selected Photo: {case_file.name}", width=200)
 
-        # EXECUTE IF TEXT CHAT IS SENT OR IF ATTACHMENT 'SEND' BUTTON IS CLICKED
-        if user_input or submit_uploaded_attachment:
+        # 💬 MAIN CHAT INPUT WITH SUBMIT ARROW
+        user_input = st.chat_input("यहाँ केस के तथ्य/निर्देश लिखें... (फोटो अटैच होने पर Send एरो दबाते ही एक साथ अपलोड होगा)")
+
+        # ONLY EXECUTE WHEN THE SUBMIT ARROW (↑) IS CLICKED
+        if user_input:
             format_content, _ = read_uploaded_file_content(format_file) if format_file else ("", None)
             case_content, case_image = read_uploaded_file_content(case_file) if case_file else ("", None)
 
@@ -613,17 +573,12 @@ if api_key:
             if case_content:
                 combined_prompt += f"\n\n--- CASE FILES & EVIDENCE ATTACHED ---\n{case_content}\n"
                 
-            final_user_text = user_input if user_input else attachment_note
-            if final_user_text:
-                combined_prompt += f"\n\nUSER INSTRUCTION: {final_user_text}"
-            else:
-                combined_prompt += "\n\nUSER INSTRUCTION: Perform deep legal case analysis, suggest loopholes, cross-questions, and build full court draft."
+            combined_prompt += f"\n\nUSER INSTRUCTION: {user_input}"
 
-            display_chat_msg = final_user_text if final_user_text else "Uploaded Case/Photos for Deep AI Analysis"
-            save_chat_to_supabase(current_chat_name, "user", display_chat_msg)
+            save_chat_to_supabase(current_chat_name, "user", user_input)
 
             with st.chat_message("user"):
-                st.markdown(display_chat_msg)
+                st.markdown(user_input)
                 if format_file:
                     st.info(f"📐 Custom Format Template: `{format_file.name}`")
                 if case_file:

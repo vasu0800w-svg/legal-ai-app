@@ -97,6 +97,8 @@ if "user" not in st.session_state:
     st.session_state.user = None
 if "auth_mode" not in st.session_state:
     st.session_state.auth_mode = "login"
+if "uploader_key" not in st.session_state:
+    st.session_state.uploader_key = 0
 
 def login_user(email, password):
     try:
@@ -543,13 +545,13 @@ if api_key:
         """
         st.components.v1.html(voice_html, height=160)
 
-        # 📎 ATTACHMENT BOX MOVED TO THE BOTTOM (JUST ABOVE CHAT INPUT)
+        # 📎 ATTACHMENT BOX WITH DYNAMIC RESET KEY
         with st.expander("📎 Attach Photos / Case Files / Custom Format (Optional)", expanded=False):
             col_f1, col_f2 = st.columns(2)
             with col_f1:
-                format_file = st.file_uploader("1. Custom Format (.docx, .txt)", type=["docx", "txt"], key="format_file")
+                format_file = st.file_uploader("1. Custom Format (.docx, .txt)", type=["docx", "txt"], key=f"format_file_{st.session_state.uploader_key}")
             with col_f2:
-                case_file = st.file_uploader("2. Case Docs or Photos (.jpg, .png, .docx, .txt)", type=["docx", "txt", "jpg", "jpeg", "png"], key="case_file")
+                case_file = st.file_uploader("2. Case Docs or Photos (.jpg, .png, .docx, .txt)", type=["docx", "txt", "jpg", "jpeg", "png"], key=f"case_file_{st.session_state.uploader_key}")
             
             if case_file:
                 ext = case_file.name.split('.')[-1].lower()
@@ -604,6 +606,8 @@ if api_key:
                 
             if full_response:
                 save_chat_to_supabase(current_chat_name, "assistant", full_response)
+                # 🔄 CLEAR UPLOADER FOR NEXT MESSAGES ONCE SENT SUCCESSFULLY
+                st.session_state.uploader_key += 1
                 st.rerun()
 else:
     st.info("👈 Please enter your Gemini API Key in the sidebar settings.")

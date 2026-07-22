@@ -28,7 +28,7 @@ if supabase_url and supabase_key:
     except Exception as e:
         st.error(f"Supabase connection error: {e}")
 
-# 🔐 STYLING
+# 🔐 PREMIUM MODERN CSS STYLING FOR SLEEK SIDEBAR & UI
 st.markdown("""
 <style>
     .stApp {
@@ -37,8 +37,9 @@ st.markdown("""
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
     section[data-testid="stSidebar"] {
-        background-color: #0b0c10 !important;
-        border-right: 1px solid #1f222e !important;
+        background-color: #08090d !important;
+        border-right: 1px solid #161821 !important;
+        padding-top: 10px;
     }
     
     .stTextInput > div > div > input, .stSelectbox > div > div, .stTextArea > div > div > textarea {
@@ -55,6 +56,13 @@ st.markdown("""
         border: none !important;
         padding: 8px 16px !important;
         font-weight: 600 !important;
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3) !important;
+        transition: all 0.2s ease-in-out;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(124, 58, 237, 0.5) !important;
     }
     
     .stDownloadButton > button {
@@ -62,6 +70,31 @@ st.markdown("""
         color: #c084fc !important;
         border: 1px solid #a855f7 !important;
         border-radius: 10px !important;
+    }
+
+    /* 🎨 ULTRA-CLEAN MODERN SIDEBAR RADIO BUTTONS STYLING */
+    div.stRadio > div {
+        gap: 6px !important;
+    }
+    div.stRadio > div[role="radiogroup"] > label {
+        background-color: #0e1017 !important;
+        border: 1px solid #1a1d2d !important;
+        border-radius: 10px !important;
+        padding: 10px 14px !important;
+        color: #9ca3af !important;
+        font-weight: 500 !important;
+        font-size: 14px !important;
+        transition: all 0.2s ease;
+        box-shadow: none !important;
+    }
+    div.stRadio > div[role="radiogroup"] > label:hover {
+        background-color: #161925 !important;
+        border-color: #7c3aed !important;
+        color: #ffffff !important;
+    }
+    div.stRadio > div[role="radiogroup"] > label[data-baseweb="radio"] input:checked + div {
+        background: linear-gradient(135deg, #7c3aed, #6366f1) !important;
+        color: #ffffff !important;
     }
 
     .pro-banner {
@@ -73,19 +106,21 @@ st.markdown("""
         align-items: center;
         justify-content: space-between;
         margin-bottom: 20px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.3);
     }
 
     .user-avatar {
         background: linear-gradient(135deg, #7c3aed, #6366f1);
         color: white;
         border-radius: 50%;
-        width: 34px;
-        height: 34px;
+        width: 36px;
+        height: 36px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 700;
         font-size: 13px;
+        box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
     }
 
     .welcome-hero {
@@ -381,24 +416,24 @@ def create_court_ready_docx(text):
     bio.seek(0)
     return bio
 
-# ----------------- 🎯 SIDEBAR NAVIGATION -----------------
+# ----------------- 🎯 PREMIUM SIDEBAR NAVIGATION -----------------
 nav_options = ["💬 Case Studio", "📖 Library", "📁 My Cases", "⚙️ Settings", "📂 Chat History"]
 
 with st.sidebar:
     st.markdown("""
-    <div style="text-align: center; margin-bottom: 20px;">
+    <div style="text-align: center; margin-bottom: 22px; padding-top: 10px;">
         <div style="font-size: 38px;">⚖️</div>
-        <h3 style="margin:0; font-size: 19px; font-weight:700;">Nyaya Assist <span style="color:#a855f7;">AI</span></h3>
+        <h3 style="margin:4px 0 0 0; font-size: 20px; font-weight:700; letter-spacing: -0.5px;">Nyaya Assist <span style="color:#a855f7;">AI</span></h3>
     </div>
     """, unsafe_allow_html=True)
     
     st.markdown("""
     <div class="pro-banner">
         <div>
-            <div style="font-weight: 700; font-size: 13px; color: #ffffff;">Upgrade to Pro</div>
+            <div style="font-weight: 700; font-size: 13px; color: #ffffff;">👑 Upgrade to Pro</div>
             <div style="font-size: 11px; color: #9ca3af;">Unlock advanced features</div>
         </div>
-        <span style="font-size: 16px;">➔</span>
+        <span style="font-size: 16px; color: #c084fc;">➔</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -407,18 +442,18 @@ with st.sidebar:
         st.session_state.nav_menu = "💬 Case Studio"
         st.rerun()
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<div style='margin: 12px 0;'></div>", unsafe_allow_html=True)
     curr_idx = nav_options.index(st.session_state.nav_menu) if st.session_state.nav_menu in nav_options else 0
     menu = st.radio("Menu", nav_options, index=curr_idx, label_visibility="collapsed")
     st.session_state.nav_menu = menu
 
-    st.markdown("---")
-    st.markdown("<div style='font-size: 13px; font-weight:700; color:#9ca3af; margin-bottom:10px;'>Chat History</div>", unsafe_allow_html=True)
+    st.markdown("<hr style='border: 0; border-top: 1px solid #1f222e; margin: 20px 0;'>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size: 12px; font-weight:700; color:#8e92a4; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom:12px;'>Chat History</div>", unsafe_allow_html=True)
 
     sidebar_sessions = get_supabase_sessions()
     if sidebar_sessions:
         for sess in sidebar_sessions[:5]:
-            if st.button(f"💬 {sess[:24]}...", key=f"sbar_sess_{sess}", use_container_width=True):
+            if st.button(f"💬 {sess[:22]}...", key=f"sbar_sess_{sess}", use_container_width=True):
                 st.session_state.current_session = sess
                 st.session_state.nav_menu = "💬 Case Studio"
                 st.rerun()

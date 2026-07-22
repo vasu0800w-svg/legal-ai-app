@@ -9,7 +9,7 @@ from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from supabase import create_client, Client
 
-st.set_page_config(page_title="NyayaAI Studio Pro", page_icon="⚖️", layout="centered")
+st.set_page_config(page_title="Nyaya Assist AI", page_icon="⚖️", layout="centered")
 
 TEMPLATES_FOLDER = "master_templates"
 if not os.path.exists(TEMPLATES_FOLDER):
@@ -28,9 +28,82 @@ if supabase_url and supabase_key:
     except Exception as e:
         st.error(f"Supabase connection error: {e}")
 
-# 🔐 LOGIN & USER SYSTEM
+# 🔐 STYLING FOR MODERN DARK UI
+st.markdown("""
+<style>
+    /* Dark Theme Background Override */
+    .stApp {
+        background-color: #0b0c10;
+        color: #ffffff;
+    }
+    
+    /* Input Fields Styling */
+    .stTextInput > div > div > input {
+        background-color: #16181e !important;
+        color: #ffffff !important;
+        border: 1px solid #2a2d37 !important;
+        border-radius: 12px !important;
+        padding: 12px 15px !important;
+    }
+    .stTextInput > div > div > input:focus {
+        border-color: #8b5cf6 !important;
+        box-shadow: 0 0 8px rgba(139, 92, 246, 0.4) !important;
+    }
+    
+    /* Buttons Styling */
+    .stButton > button {
+        background: linear-gradient(135deg, #7c3aed, #6366f1) !important;
+        color: white !important;
+        border-radius: 12px !important;
+        border: none !important;
+        padding: 12px 24px !important;
+        font-weight: 600 !important;
+        font-size: 16px !important;
+        width: 100% !important;
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3) !important;
+    }
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #6d28d9, #4f46e5) !important;
+    }
+    
+    /* Social Buttons */
+    .social-btn {
+        background-color: #16181e;
+        border: 1px solid #2a2d37;
+        border-radius: 12px;
+        padding: 10px;
+        text-align: center;
+        margin-bottom: 10px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    /* Divider Text */
+    .divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        color: #6b7280;
+        margin: 20px 0;
+    }
+    .divider::before, .divider::after {
+        content: '';
+        flex: 1;
+        border-bottom: 1px solid #2a2d37;
+    }
+    .divider:not(:empty)::before { margin-right: .25em; }
+    .divider:not(:empty)::after { margin-left: .25em; }
+</style>
+""", unsafe_allow_html=True)
+
+# 🔐 USER SYSTEM STATE
 if "user" not in st.session_state:
     st.session_state.user = None
+if "auth_mode" not in st.session_state:
+    st.session_state.auth_mode = "login"
 
 def login_user(email, password):
     try:
@@ -41,44 +114,117 @@ def login_user(email, password):
     except Exception as e:
         st.error(f"Login failed: {e}")
 
-def signup_user(email, password):
+def signup_user(email, password, full_name, phone):
     try:
-        res = supabase.auth.sign_up({"email": email, "password": password})
+        res = supabase.auth.sign_up({
+            "email": email, 
+            "password": password,
+            "options": {
+                "data": {
+                    "full_name": full_name,
+                    "phone": phone
+                }
+            }
+        })
         st.session_state.user = res.user
         st.success("✅ Account created successfully!")
         st.rerun()
     except Exception as e:
         st.error(f"Signup failed: {e}")
 
+# ----------------- LOGIN / SIGNUP SCREEN -----------------
 if not st.session_state.user:
-    st.title("⚖️ NyayaAI Studio Pro")
-    st.subheader("Login / Signup to Access Legal AI")
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    auth_mode = st.radio("Choose Action", ["Login", "Sign Up"])
-    email = st.text_input("Email Address")
-    password = st.text_input("Password", type="password")
-    
-    if auth_mode == "Login":
-        if st.button("🔐 Log In"):
+    if st.session_state.auth_mode == "login":
+        # Branding
+        st.markdown("""
+        <div style="text-align: center;">
+            <div style="font-size: 50px;">⚖️</div>
+            <h2 style="margin: 0; font-weight: 700; color: #ffffff;">Nyaya Assist <span style="color: #a855f7;">AI</span></h2>
+            <p style="color: #9ca3af; font-size: 14px; margin-top: 4px;">Your AI Legal Assistant</p>
+            <br>
+            <h4 style="margin: 0; font-weight: 600;">Login to your account</h4>
+            <p style="color: #6b7280; font-size: 13px;">Welcome back! Please enter your details.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        email = st.text_input("Email Address", placeholder="name@example.com", key="login_email")
+        password = st.text_input("Password", type="password", placeholder="••••••••", key="login_pass")
+        
+        col_fg1, col_fg2 = st.columns([2, 1])
+        with col_fg2:
+            st.markdown("<p style='text-align: right;'><a href='#' style='color: #a855f7; text-decoration: none; font-size: 12px;'>Forgot Password?</a></p>", unsafe_allow_html=True)
+            
+        if st.button("Login  ➔", key="btn_login"):
             if email and password and supabase:
                 login_user(email, password)
             else:
                 st.warning("Please enter Email & Password.")
+                
+        st.markdown("<div class='divider'>or continue with</div>", unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div class="social-btn">🌐 Continue with Google</div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_s1, col_s2, col_s3 = st.columns([1, 2, 1])
+        with col_s2:
+            if st.button("Don't have an account? Sign up", key="switch_to_signup"):
+                st.session_state.auth_mode = "signup"
+                st.rerun()
+
     else:
-        if st.button("📝 Sign Up"):
-            if email and password and supabase:
-                signup_user(email, password)
+        # Sign Up
+        st.markdown("""
+        <div style="text-align: left;">
+            <h2 style="margin: 0; font-weight: 700; color: #ffffff;">Create your account</h2>
+            <p style="color: #9ca3af; font-size: 14px; margin-top: 4px;">Join Nyaya Assist AI and simplify legal tasks with AI.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        full_name = st.text_input("Full Name", placeholder="Adv. Rajesh Sharma", key="signup_name")
+        email = st.text_input("Email", placeholder="name@example.com", key="signup_email")
+        phone = st.text_input("Phone Number (Optional)", placeholder="+91 98765 43210", key="signup_phone")
+        password = st.text_input("Password", type="password", placeholder="••••••••", key="signup_pass")
+        confirm_pass = st.text_input("Confirm Password", type="password", placeholder="••••••••", key="signup_cpass")
+        
+        agree = st.checkbox("I agree to the Terms of Service and Privacy Policy")
+        
+        if st.button("Sign Up  ➔", key="btn_signup"):
+            if not agree:
+                st.warning("Please agree to the Terms & Privacy Policy.")
+            elif password != confirm_pass:
+                st.error("Passwords do not match!")
+            elif email and password and supabase:
+                signup_user(email, password, full_name, phone)
             else:
-                st.warning("Please enter Email & Password.")
+                st.warning("Please fill all required fields.")
+                
+        st.markdown("<div class='divider'>or continue with</div>", unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div class="social-btn">🌐 Continue with Google</div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_s1, col_s2, col_s3 = st.columns([1, 2, 1])
+        with col_s2:
+            if st.button("Already have an account? Login", key="switch_to_login"):
+                st.session_state.auth_mode = "login"
+                st.rerun()
+
     st.stop()
 
 # ----------------- LOGGED IN APPLICATION AREA -----------------
 current_user_email = st.session_state.user.email
 
-st.sidebar.title("⚖️ NyayaAI Pro")
+st.sidebar.title("⚖️ Nyaya Assist AI")
 st.sidebar.write(f"👤 **User:** `{current_user_email}`")
 if st.sidebar.button("🚪 Logout"):
     st.session_state.user = None
+    st.session_state.auth_mode = "login"
     st.rerun()
 
 menu = st.sidebar.radio("Navigation", ["💬 Case Studio", "📂 Case History", "⚙️ Settings"])
@@ -251,7 +397,7 @@ if api_key:
             st.info("No saved cases found.")
 
     elif menu == "💬 Case Studio":
-        st.title("⚖️ NyayaAI: Precision Legal Studio")
+        st.title("⚖️ Nyaya Assist AI")
         
         sessions = get_supabase_sessions()
         if "current_session" not in st.session_state:

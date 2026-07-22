@@ -28,7 +28,7 @@ if supabase_url and supabase_key:
     except Exception as e:
         st.error(f"Supabase connection error: {e}")
 
-# 🔐 STYLING MATCHING EXACT SIDEBAR PHOTO
+# 🔐 STYLING
 st.markdown("""
 <style>
     .stApp {
@@ -381,7 +381,7 @@ def create_court_ready_docx(text):
     bio.seek(0)
     return bio
 
-# ----------------- 🎯 SIDEBAR NAVIGATION MATCHING YOUR PHOTO EXACTLY -----------------
+# ----------------- 🎯 SIDEBAR NAVIGATION -----------------
 nav_options = ["💬 Case Studio", "📖 Library", "📁 My Cases", "⚙️ Settings", "📂 Chat History"]
 
 with st.sidebar:
@@ -415,7 +415,6 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("<div style='font-size: 13px; font-weight:700; color:#9ca3af; margin-bottom:10px;'>Chat History</div>", unsafe_allow_html=True)
 
-    # RECENT CHATS LIST IN SIDEBAR
     sidebar_sessions = get_supabase_sessions()
     if sidebar_sessions:
         for sess in sidebar_sessions[:5]:
@@ -458,26 +457,21 @@ if default_api_key:
     if "default_court" not in st.session_state:
         st.session_state.default_court = ""
 
-    local_templates_text = load_all_local_templates()
-
     system_instruction = f"""
     ROLE & OBJECTIVE:
-    You are a legendary Senior Advocate & Legal Strategist of the Supreme Court of India. You possess sharp intellect like ChatGPT's top legal reasoning models.
+    You are a legendary Senior Advocate & Legal Strategist of the Supreme Court of India. You possess expert legal knowledge of Indian law (BNS, BNSS, BSA, CPC, CrPC, Constitution, etc.) and Supreme Court/High Court precedents.
     Response Language Style: {st.session_state.app_lang}.
     
     MANDATORY DRAFTING DETAILS:
     - Advocate Name: {st.session_state.advocate_name if st.session_state.advocate_name else "[Advocate Name]"}
     - Court Heading: {st.session_state.default_court if st.session_state.default_court else "[Court Name]"}
     
-    PERMANENT MASTER TEMPLATES IN DATABASE:
-    {local_templates_text if local_templates_text else "Default Standard Court Layout (High Court / District Court Format)"}
-    
     DEEP ANALYTICAL RESPONSE STRUCTURE:
     When user uploads case files, photos of documents, or asks complex legal questions:
     1. 🔍 **DEEP CASE ANALYSIS & LOOPHOLES:** Highlight strong facts, weaknesses, and loopholes in the opponent's case.
     2. 🎯 **STRATEGIC CROSS-EXAMINATION QUESTIONS:** Provide 5 to 7 sharp, high-impact questions to ask the opponent or witnesses in court.
-    3. ⚖️ **APPLICABLE SECTIONS & PRECEDENTS:** Mention key legal sections (IPC/BNS, CrPC/BNSS, CPC, Evidence Act/BSA) and strategic legal points.
-    4. 📜 **FORMAL COURT DRAFT:** ALWAYS generate a full court draft based on uploaded master format (if provided) or standard Indian court format (if no format uploaded).
+    3. ⚖️ **APPLICABLE SECTIONS & PRECEDENTS:** Mention key legal sections and strategic precedents.
+    4. 📜 **FORMAL COURT DRAFT:** ALWAYS generate a full court draft based on standard Indian court format.
     
     OUTPUT FORMATTING:
     Final legal draft MUST ALWAYS be strictly enclosed inside:
@@ -493,9 +487,41 @@ if default_api_key:
     )
 
     if menu == "📖 Library":
-        st.markdown("## 📖 Legal Master Library")
-        st.markdown("Access standard legal formats, petition templates, and Bare Acts database.")
-        st.info("📚 Database contains High Court / Supreme Court Master Petition Templates & Standard Legal Drafts.")
+        st.markdown("## 📖 Legal Library & Judgment Search")
+        st.markdown("यहाँ आप और आपके पापा अपनी जरूरी लीगल बुक्स, जजमेंट्स या केस फाइल्स अपलोड और सर्च कर सकते हैं।")
+        
+        search_query = st.text_input("🔍 Search Library (Enter book name, section, or keyword)...", placeholder="e.g. Section 498A, Bail Judgment, etc.")
+        
+        st.markdown("### 📤 Upload Files / Judgments to Library")
+        uploaded_doc = st.file_uploader(
+            "Select Judgment or Law Reference File (.pdf, .docx, .txt)", 
+            type=["pdf", "docx", "txt"], 
+            key="library_search_uploader"
+        )
+        
+        if uploaded_doc:
+            save_path = os.path.join(TEMPLATES_FOLDER, uploaded_doc.name)
+            with open(save_path, "wb") as f:
+                f.write(uploaded_doc.getbuffer())
+            st.success(f"✅ Successfully saved `{uploaded_doc.name}` to library storage!")
+
+        st.markdown("---")
+        st.markdown("### 📁 Saved Documents & Judgments")
+        if os.path.exists(TEMPLATES_FOLDER):
+            files = os.listdir(TEMPLATES_FOLDER)
+            if files:
+                filtered_files = [f for f in files if search_query.lower() in f.lower()] if search_query else files
+                for f in sorted(filtered_files):
+                    col_l1, col_l2 = st.columns([4, 1])
+                    with col_l1:
+                        st.markdown(f"📄 **`{f}`**")
+                    with col_l2:
+                        if st.button("🗑️ Delete", key=f"del_lib_{f}"):
+                            os.remove(os.path.join(TEMPLATES_FOLDER, f))
+                            st.success(f"Deleted {f}")
+                            st.rerun()
+            else:
+                st.info("No documents stored in library yet.")
 
     elif menu == "📁 My Cases":
         st.markdown("## 📁 My Cases & Documents")

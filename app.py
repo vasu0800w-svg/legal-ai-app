@@ -99,6 +99,10 @@ if "auth_mode" not in st.session_state:
     st.session_state.auth_mode = "login"
 if "uploader_key" not in st.session_state:
     st.session_state.uploader_key = 0
+if "current_session" not in st.session_state:
+    st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
+if "selected_nav" not in st.session_state:
+    st.session_state.selected_nav = "💬 Case Studio"
 
 def login_user(email, password):
     try:
@@ -215,7 +219,7 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    menu = st.radio("Navigation", ["💬 Case Studio", "📂 Case History", "⚙️ Settings"], label_visibility="collapsed")
+    menu = st.radio("Navigation", ["💬 Case Studio", "📂 Chat History", "⚙️ Settings"], key="selected_nav", label_visibility="collapsed")
     
     st.markdown("---")
     
@@ -258,6 +262,15 @@ def get_supabase_chat_history(session_name):
         except Exception:
             return []
     return []
+
+def delete_supabase_session(session_name):
+    if supabase:
+        try:
+            supabase.table("chats").delete().eq("user_email", current_user_email).eq("session_name", session_name).execute()
+            st.success(f"🗑️ Deleted chat: {session_name}")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Error deleting chat: {e}")
 
 def load_all_local_templates():
     template_data = ""
@@ -410,14 +423,25 @@ if api_key:
             st.session_state.app_lang = selected_lang
             st.success("✅ Settings updated successfully!")
 
-    elif menu == "📂 Case History":
-        st.markdown("## 📂 Saved Case Archives")
-        st.markdown("Access all your cloud-backed legal discussions and generated drafts.")
+    elif menu == "📂 Chat History":
+        st.markdown("## 📂 Saved Chat Archives")
+        st.markdown("यहाँ आपकी पुरानी सभी चैट्स सुरक्षित हैं। आप किसी भी चैट को फिर से खोल सकते हैं या डिलीट कर सकते हैं।")
         
         sessions = get_supabase_sessions()
         if sessions:
             for s in sessions:
-                with st.expander(f"📁 Case Session: {s}"):
+                with st.expander(f"💬 Chat Session: {s}"):
+                    col_h1, col_h2 = st.columns([4, 1])
+                    with col_h1:
+                        if st.button(f"💬 Open & Resume Chat ({s})", key=f"open_{s}"):
+                            st.session_state.current_session = s
+                            st.session_state.selected_nav = "💬 Case Studio"
+                            st.rerun()
+                    with col_h2:
+                        if st.button("🗑️ Delete Chat", key=f"del_{s}"):
+                            delete_supabase_session(s)
+
+                    st.markdown("---")
                     chats = get_supabase_chat_history(s)
                     for c in chats:
                         role_label = "👤 You" if c['role'] == "user" else "⚖️ NyayaAssist AI"
@@ -425,12 +449,10 @@ if api_key:
                         st.markdown(c['content'])
                         st.markdown("---")
         else:
-            st.info("No saved cases found in your account history.")
+            st.info("No saved chat history found in your account.")
 
     elif menu == "💬 Case Studio":
         sessions = get_supabase_sessions()
-        if "current_session" not in st.session_state:
-            st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
 
         st.markdown("""
         <div class="chat-header-card">
@@ -442,11 +464,11 @@ if api_key:
         col_c1, col_c2 = st.columns([3, 1])
         with col_c1:
             options = [st.session_state.current_session] + [s for s in sessions if s != st.session_state.current_session]
-            current_chat_name = st.selectbox("Active Case File:", options, index=0)
+            current_chat_name = st.selectbox("Active Case File / Chat:", options, index=0)
             st.session_state.current_session = current_chat_name
         with col_c2:
             st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
-            if st.button("➕ New Case", use_container_width=True):
+            if st.button("➕ New Chat", use_container_width=True):
                 st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
                 st.rerun()
 

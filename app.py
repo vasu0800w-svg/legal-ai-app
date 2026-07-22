@@ -28,7 +28,7 @@ if supabase_url and supabase_key:
     except Exception as e:
         st.error(f"Supabase connection error: {e}")
 
-# 🔐 PREMIUM MODERN CSS STYLING
+# 📱 SUPREME MOBILE-FRIENDLY & DESKTOP RESPONSIVE CSS
 st.markdown("""
 <style>
     .stApp {
@@ -58,6 +58,7 @@ st.markdown("""
         font-weight: 600 !important;
         box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3) !important;
         transition: all 0.2s ease-in-out;
+        width: 100%;
     }
     
     .stButton > button:hover {
@@ -70,44 +71,20 @@ st.markdown("""
         color: #c084fc !important;
         border: 1px solid #a855f7 !important;
         border-radius: 10px !important;
+        width: 100%;
     }
 
-    div.stRadio > div {
-        gap: 6px !important;
-    }
-    div.stRadio > div[role="radiogroup"] > label {
-        background-color: #0e1017 !important;
-        border: 1px solid #1a1d2d !important;
-        border-radius: 10px !important;
-        padding: 10px 14px !important;
-        color: #9ca3af !important;
-        font-weight: 500 !important;
-        font-size: 14px !important;
-        transition: all 0.2s ease;
-        box-shadow: none !important;
-    }
-    div.stRadio > div[role="radiogroup"] > label:hover {
-        background-color: #161925 !important;
-        border-color: #7c3aed !important;
-        color: #ffffff !important;
-    }
-    div.stRadio > div[role="radiogroup"] > label[data-baseweb="radio"] input:checked + div {
-        background: linear-gradient(135deg, #7c3aed, #6366f1) !important;
-        color: #ffffff !important;
-    }
-
-    div[data-testid="column"]:nth-child(3) .stButton > button {
-        border-radius: 50% !important;
-        width: 42px !important;
-        height: 42px !important;
-        padding: 0 !important;
-        font-weight: 700 !important;
-        font-size: 14px !important;
-        line-height: 42px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin-left: auto !important;
+    /* 📱 MOBILE RESPONSIVE FIXES FOR TOP APP BAR & CARDS */
+    @media (max-width: 768px) {
+        .welcome-title {
+            font-size: 24px !important;
+        }
+        .welcome-subtitle {
+            font-size: 13px !important;
+        }
+        .case-studio-banner {
+            padding: 12px 14px !important;
+        }
     }
 
     .pro-banner {
@@ -124,7 +101,7 @@ st.markdown("""
 
     .welcome-hero {
         text-align: center;
-        padding: 20px 20px 10px 20px;
+        padding: 10px 10px 5px 10px;
     }
     .welcome-title {
         font-size: 32px;
@@ -135,15 +112,15 @@ st.markdown("""
     .welcome-subtitle {
         color: #9ca3af;
         font-size: 15px;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
     }
     
     .case-studio-banner {
         background-color: #0e1017;
         border: 1px solid #1f222e;
         border-radius: 16px;
-        padding: 18px 24px;
-        margin: 0 auto 25px auto;
+        padding: 18px 20px;
+        margin: 0 auto 20px auto;
         max-width: 800px;
     }
 
@@ -168,7 +145,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 🔐 USER SYSTEM STATE
+# 🔐 USER SYSTEM & AUTO-LOGIN STATE
 if "user" not in st.session_state:
     st.session_state.user = None
 if "auth_mode" not in st.session_state:
@@ -180,10 +157,21 @@ if "current_session" not in st.session_state:
 if "nav_menu" not in st.session_state:
     st.session_state.nav_menu = "💬 Case Studio"
 
+# Check Query Params for Auto-Login Persistence
+params = st.query_params
+if "logged_in_user" in params and not st.session_state.user:
+    saved_email = params["logged_in_user"]
+    class PersistentUser:
+        def __init__(self, email):
+            self.email = email
+            self.user_metadata = {"full_name": email.split('@')[0].capitalize()}
+    st.session_state.user = PersistentUser(saved_email)
+
 def login_user(email, password):
     try:
         res = supabase.auth.sign_in_with_password({"email": email, "password": password})
         st.session_state.user = res.user
+        st.query_params["logged_in_user"] = email
         st.success("✅ Login successful!")
         st.rerun()
     except Exception as e:
@@ -202,6 +190,7 @@ def signup_user(email, password, full_name, phone):
             }
         })
         st.session_state.user = res.user
+        st.query_params["logged_in_user"] = email
         st.success("✅ Account created successfully!")
         st.rerun()
     except Exception as e:
@@ -211,12 +200,12 @@ def signup_user(email, password, full_name, phone):
 if not st.session_state.user:
     st.markdown("<br>", unsafe_allow_html=True)
     
-    col_auth1, col_auth2, col_auth3 = st.columns([1, 2, 1])
+    col_auth1, col_auth2, col_auth3 = st.columns([1, 4, 1])
     with col_auth2:
         if st.session_state.auth_mode == "login":
             st.markdown("""
             <div style="text-align: center;">
-                <div style="font-size: 55px;">⚖️</div>
+                <div style="font-size: 50px;">⚖️</div>
                 <h2 style="margin: 0; font-weight: 700; color: #ffffff;">Nyaya Assist <span style="color: #a855f7;">AI</span></h2>
                 <p style="color: #9ca3af; font-size: 14px; margin-top: 4px;">Your AI Legal Assistant</p>
                 <br>
@@ -420,19 +409,19 @@ nav_options = ["💬 Case Studio", "📖 Library", "📁 My Cases", "⚙️ Sett
 
 with st.sidebar:
     st.markdown("""
-    <div style="text-align: center; margin-bottom: 22px; padding-top: 10px;">
-        <div style="font-size: 38px;">⚖️</div>
-        <h3 style="margin:4px 0 0 0; font-size: 20px; font-weight:700; letter-spacing: -0.5px;">Nyaya Assist <span style="color:#a855f7;">AI</span></h3>
+    <div style="text-align: center; margin-bottom: 18px; padding-top: 5px;">
+        <div style="font-size: 32px;">⚖️</div>
+        <h3 style="margin:2px 0 0 0; font-size: 18px; font-weight:700; letter-spacing: -0.5px;">Nyaya Assist <span style="color:#a855f7;">AI</span></h3>
     </div>
     """, unsafe_allow_html=True)
     
     st.markdown("""
     <div class="pro-banner">
         <div>
-            <div style="font-weight: 700; font-size: 13px; color: #ffffff;">👑 Upgrade to Pro</div>
-            <div style="font-size: 11px; color: #9ca3af;">Unlock advanced features</div>
+            <div style="font-weight: 700; font-size: 12px; color: #ffffff;">👑 Upgrade to Pro</div>
+            <div style="font-size: 10px; color: #9ca3af;">Unlock advanced features</div>
         </div>
-        <span style="font-size: 16px; color: #c084fc;">➔</span>
+        <span style="font-size: 14px; color: #c084fc;">➔</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -441,18 +430,18 @@ with st.sidebar:
         st.session_state.nav_menu = "💬 Case Studio"
         st.rerun()
 
-    st.markdown("<div style='margin: 12px 0;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin: 8px 0;'></div>", unsafe_allow_html=True)
     curr_idx = nav_options.index(st.session_state.nav_menu) if st.session_state.nav_menu in nav_options else 0
     menu = st.radio("Menu", nav_options, index=curr_idx, label_visibility="collapsed")
     st.session_state.nav_menu = menu
 
-    st.markdown("<hr style='border: 0; border-top: 1px solid #1f222e; margin: 20px 0;'>", unsafe_allow_html=True)
-    st.markdown("<div style='font-size: 12px; font-weight:700; color:#8e92a4; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom:12px;'>Chat History</div>", unsafe_allow_html=True)
+    st.markdown("<hr style='border: 0; border-top: 1px solid #1f222e; margin: 15px 0;'>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size: 11px; font-weight:700; color:#8e92a4; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom:8px;'>Chat History</div>", unsafe_allow_html=True)
 
     sidebar_sessions = get_supabase_sessions()
     if sidebar_sessions:
         for sess in sidebar_sessions[:5]:
-            if st.button(f"💬 {sess[:22]}...", key=f"sbar_sess_{sess}", use_container_width=True):
+            if st.button(f"💬 {sess[:18]}...", key=f"sbar_sess_{sess}", use_container_width=True):
                 st.session_state.current_session = sess
                 st.session_state.nav_menu = "💬 Case Studio"
                 st.rerun()
@@ -464,6 +453,8 @@ with st.sidebar:
 
     st.markdown("<br>"*2, unsafe_allow_html=True)
     if st.button("🚪 Logout", use_container_width=True):
+        if "logged_in_user" in st.query_params:
+            del st.query_params["logged_in_user"]
         st.session_state.user = None
         st.session_state.auth_mode = "login"
         st.rerun()
@@ -492,12 +483,12 @@ def show_profile_dialog():
     if st.button("🚀 Upgrade to Pro Plan", key="modal_upgrade_btn", use_container_width=True):
         st.info("Pro Plan subscription gateway will be integrated soon!")
 
-# ----------------- TOP APP BAR -----------------
-col_top_h1, col_top_h2, col_top_h3 = st.columns([5, 1, 1])
+# ----------------- TOP APP BAR (MOBILE FRIENDLY COLUMNS) -----------------
+col_top_h1, col_top_h2, col_top_h3 = st.columns([4, 1, 1])
 with col_top_h1:
-    st.markdown("### Nyaya Assist <span style='color:#a855f7;'>AI</span>", unsafe_allow_html=True)
+    st.markdown("#### Nyaya Assist <span style='color:#a855f7;'>AI</span>", unsafe_allow_html=True)
 with col_top_h2:
-    st.markdown("<div style='text-align: right; padding-top: 10px; color: #9ca3af; font-size: 16px;'>🔔</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: right; padding-top: 6px; color: #9ca3af; font-size: 14px;'>🔔</div>", unsafe_allow_html=True)
 with col_top_h3:
     if st.button(user_initials, key="btn_open_profile_modal"):
         show_profile_dialog()
@@ -543,12 +534,12 @@ if default_api_key:
     )
 
     if menu == "📖 Library":
-        st.markdown("## 📖 Legal Library & Judgment Search")
+        st.markdown("## 📖 Legal Library")
         st.markdown("यहाँ आप और आपके पापा अपनी जरूरी लीगल बुक्स, जजमेंट्स या केस फाइल्स अपलोड और सर्च कर सकते हैं।")
         
-        search_query = st.text_input("🔍 Search Library (Enter book name, section, or keyword)...", placeholder="e.g. Section 498A, Bail Judgment, etc.")
+        search_query = st.text_input("🔍 Search Library...", placeholder="e.g. Section 498A, Bail Judgment...")
         
-        st.markdown("### 📤 Upload Files / Judgments to Library")
+        st.markdown("### 📤 Upload Files")
         uploaded_doc = st.file_uploader(
             "Select Judgment or Law Reference File (.pdf, .docx, .txt)", 
             type=["pdf", "docx", "txt"], 
@@ -559,47 +550,39 @@ if default_api_key:
             save_path = os.path.join(TEMPLATES_FOLDER, uploaded_doc.name)
             with open(save_path, "wb") as f:
                 f.write(uploaded_doc.getbuffer())
-            st.success(f"✅ Successfully saved `{uploaded_doc.name}` to library storage!")
+            st.success(f"✅ Saved `{uploaded_doc.name}`!")
 
         st.markdown("---")
-        st.markdown("### 📁 Saved Documents & Judgments")
+        st.markdown("### 📁 Saved Documents")
         if os.path.exists(TEMPLATES_FOLDER):
             files = os.listdir(TEMPLATES_FOLDER)
             if files:
                 filtered_files = [f for f in files if search_query.lower() in f.lower()] if search_query else files
                 for f in sorted(filtered_files):
-                    col_l1, col_l2 = st.columns([4, 1])
+                    col_l1, col_l2 = st.columns([3, 1])
                     with col_l1:
-                        st.markdown(f"📄 **`{f}`**")
+                        st.markdown(f"📄 `{f}`")
                     with col_l2:
-                        if st.button("🗑️ Delete", key=f"del_lib_{f}"):
+                        if st.button("🗑️ Del", key=f"del_lib_{f}"):
                             os.remove(os.path.join(TEMPLATES_FOLDER, f))
-                            st.success(f"Deleted {f}")
                             st.rerun()
             else:
-                st.info("No documents stored in library yet.")
+                st.info("No documents stored yet.")
 
     elif menu == "📁 My Cases":
-        st.markdown("## 📁 My Cases & Documents")
-        st.markdown("All your active court drafts and client case files in one place.")
+        st.markdown("## 📁 My Cases")
         sessions = get_supabase_sessions()
         if sessions:
             for s in sessions:
-                st.markdown(f"- 📁 **Case Session:** `{s}`")
+                st.markdown(f"- 📁 `{s}`")
         else:
             st.info("No active cases found.")
 
     elif menu == "⚙️ Settings":
-        st.markdown("## ⚙️ App & Profile Settings")
-        st.markdown("Configure your legal credentials for auto-filled drafting.")
-        
-        col_s1, col_s2 = st.columns(2)
-        with col_s1:
-            adv_name_input = st.text_input("Advocate Full Name:", value=st.session_state.advocate_name, placeholder="e.g. Adv. Vedant Sharma")
-        with col_s2:
-            court_input = st.text_input("Default Court Jurisdiction:", value=st.session_state.default_court, placeholder="e.g. High Court of Delhi")
-            
-        selected_lang = st.selectbox("Preferred AI Language Mode", [
+        st.markdown("## ⚙️ Settings")
+        adv_name_input = st.text_input("Advocate Full Name:", value=st.session_state.advocate_name, placeholder="Adv. Vedant Sharma")
+        court_input = st.text_input("Default Court Jurisdiction:", value=st.session_state.default_court, placeholder="High Court of Delhi")
+        selected_lang = st.selectbox("AI Language Mode", [
             "Pure Hindi (Formal Legal)",
             "Hinglish / Bilingual (Hindi & English)",
             "Pure English (Professional Legal)"
@@ -610,98 +593,67 @@ if default_api_key:
             st.session_state.advocate_name = adv_name_input
             st.session_state.default_court = court_input
             st.session_state.app_lang = selected_lang
-            st.success("✅ Settings updated successfully!")
+            st.success("✅ Updated successfully!")
 
     elif menu == "📂 Chat History":
-        st.markdown("## 📂 Saved Chat Archives")
-        st.markdown("यहाँ आपकी पुरानी सभी चैट्स सुरक्षित हैं। आप किसी भी चैट को फिर से खोल सकते हैं या डिलीट कर सकते हैं।")
-        
+        st.markdown("## 📂 Chat Archives")
         sessions = get_supabase_sessions()
         if sessions:
             for s in sessions:
-                with st.expander(f"💬 Chat Session: {s}"):
-                    col_h1, col_h2 = st.columns([4, 1])
+                with st.expander(f"💬 {s}"):
+                    col_h1, col_h2 = st.columns([3, 1])
                     with col_h1:
-                        if st.button(f"💬 Open & Resume Chat ({s})", key=f"open_{s}"):
+                        if st.button(f"Open", key=f"open_{s}"):
                             st.session_state.current_session = s
                             st.session_state.nav_menu = "💬 Case Studio"
                             st.rerun()
                     with col_h2:
-                        if st.button("🗑️ Delete Chat", key=f"del_{s}"):
+                        if st.button("Delete", key=f"del_{s}"):
                             delete_supabase_session(s)
-
                     st.markdown("---")
                     chats = get_supabase_chat_history(s)
                     for c in chats:
-                        role_label = "👤 You" if c['role'] == "user" else "⚖️ NyayaAssist AI"
-                        st.markdown(f"**{role_label}:**")
-                        st.markdown(c['content'])
-                        st.markdown("---")
+                        st.markdown(f"**{c['role'].capitalize()}:** {c['content'][:150]}...")
         else:
-            st.info("No saved chat history found in your account.")
+            st.info("No saved chat history.")
 
     elif menu == "💬 Case Studio":
         sessions = get_supabase_sessions()
         messages = get_supabase_chat_history(st.session_state.current_session)
 
-        # 🌟 HERO HOME SECTION WITH NEW CASE BUTTON
+        # 🌟 HERO HOME SECTION
         if not messages:
             st.markdown(f"""
             <div class="welcome-hero">
-                <div style="margin-bottom: 15px;">
-                    <svg width="90" height="90" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M50 15V80M50 15L25 35M50 15L75 35" stroke="url(#paint0_linear)" stroke-width="3" stroke-linecap="round"/>
-                        <path d="M15 50C15 50 25 65 35 65C45 65 35 50 35 50" stroke="url(#paint1_linear)" stroke-width="3"/>
-                        <path d="M65 50C65 50 75 65 85 65C95 65 85 50 85 50" stroke="url(#paint2_linear)" stroke-width="3"/>
-                        <path d="M38 80H62" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round"/>
-                        <defs>
-                            <linearGradient id="paint0_linear" x1="50" y1="15" x2="50" y2="80" gradientUnits="userSpaceOnUse">
-                                <stop stop-color="#c084fc"/>
-                                <stop offset="1" stop-color="#6366f1"/>
-                            </linearGradient>
-                            <linearGradient id="paint1_linear" x1="15" y1="50" x2="35" y2="65" gradientUnits="userSpaceOnUse">
-                                <stop stop-color="#a855f7"/>
-                                <stop offset="1" stop-color="#6366f1"/>
-                            </linearGradient>
-                            <linearGradient id="paint2_linear" x1="65" y1="50" x2="85" y2="65" gradientUnits="userSpaceOnUse">
-                                <stop stop-color="#a855f7"/>
-                                <stop offset="1" stop-color="#6366f1"/>
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                </div>
                 <div class="welcome-title">Welcome back, <span style="color: #a855f7;">{display_user_name}</span></div>
                 <div class="welcome-subtitle">Your AI Legal Assistant is ready to support your legal work.</div>
             </div>
             """, unsafe_allow_html=True)
 
-            col_b1, col_b2, col_b3 = st.columns([1, 4, 1])
+            col_b1, col_b2, col_b3 = st.columns([0.1, 4, 0.1])
             with col_b2:
-                col_banner_txt, col_banner_btn = st.columns([3, 1])
-                with col_banner_txt:
-                    st.markdown("""
-                    <div class="case-studio-banner">
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <span style="font-size: 28px;">📁</span>
-                            <div>
-                                <div style="font-weight: 700; font-size: 16px; color: #ffffff;">Case Studio</div>
-                                <div style="font-size: 13px; color: #9ca3af;">Describe your case, upload documents, and get AI guidance.</div>
-                            </div>
+                st.markdown("""
+                <div class="case-studio-banner">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 24px;">📁</span>
+                        <div>
+                            <div style="font-weight: 700; font-size: 15px; color: #ffffff;">Case Studio</div>
+                            <div style="font-size: 12px; color: #9ca3af;">Describe your case, upload documents, and get AI guidance.</div>
                         </div>
                     </div>
-                    """, unsafe_allow_html=True)
-                with col_banner_btn:
-                    if st.button("➕ New Case", key="btn_new_case_home", use_container_width=True):
-                        st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
-                        st.rerun()
+                </div>
+                """, unsafe_allow_html=True)
+                if st.button("➕ Start New Case", key="btn_new_case_home", use_container_width=True):
+                    st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
+                    st.rerun()
 
         # 📜 CHAT MESSAGES DISPLAY AREA
         else:
-            col_hdr1, col_hdr2 = st.columns([4, 1])
+            col_hdr1, col_hdr2 = st.columns([3, 1])
             with col_hdr1:
-                st.markdown(f"#### 💬 Case: `{st.session_state.current_session}`")
+                st.markdown(f"#### 💬 `{st.session_state.current_session}`")
             with col_hdr2:
-                if st.button("➕ New Case", key="btn_new_case_chat", use_container_width=True):
+                if st.button("➕ New", key="btn_new_case_chat", use_container_width=True):
                     st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
                     st.rerun()
 
@@ -713,129 +665,69 @@ if default_api_key:
                     if message["role"] == "assistant" and "START_DRAFT" in upper_content:
                         docx_data = create_court_ready_docx(message["content"])
                         st.download_button(
-                            label="📥 Download Court-Ready Word (.docx)",
+                            label="📥 Download Word (.docx)",
                             data=docx_data,
                             file_name=f"Court_Draft_{idx}.docx",
                             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                             key=f"docx_{idx}"
                         )
 
-        # ----------------- 🎯 CLEAN & ACCESSIBLE INPUT DECK -----------------
+        # ----------------- 🎯 MOBILE RESPONSIVE INPUT DECK -----------------
         st.markdown("---")
-        col_deck1, col_deck2, col_deck3 = st.columns(3)
+        col_deck1, col_deck2 = st.columns(2)
 
         with col_deck1:
-            st.markdown("<div class='action-card'><strong style='color:#c084fc;'>📤 2. Upload Template</strong></div>", unsafe_allow_html=True)
+            st.markdown("<div class='action-card'><strong style='color:#c084fc; font-size: 12px;'>📤 Template</strong></div>", unsafe_allow_html=True)
             format_file = st.file_uploader(
-                "Notice / Petition format", 
+                "Notice format", 
                 type=["docx", "txt", "pdf"], 
-                key=f"format_{st.session_state.uploader_key}"
+                key=f"format_{st.session_state.uploader_key}",
+                label_visibility="collapsed"
             )
 
         with col_deck2:
-            st.markdown("<div class='action-card'><strong style='color:#c084fc;'>📸 3. Upload Case Documents</strong></div>", unsafe_allow_html=True)
+            st.markdown("<div class='action-card'><strong style='color:#c084fc; font-size: 12px;'>📸 Case Docs</strong></div>", unsafe_allow_html=True)
             case_file = st.file_uploader(
-                "Case PDF, Word or Photos", 
+                "PDF or Photos", 
                 type=["docx", "txt", "pdf", "jpg", "jpeg", "png"], 
-                key=f"case_{st.session_state.uploader_key}"
+                key=f"case_{st.session_state.uploader_key}",
+                label_visibility="collapsed"
             )
-
-        with col_deck3:
-            st.markdown("<div class='action-card'><strong style='color:#c084fc;'>🎙️ Voice Assistant</strong></div>", unsafe_allow_html=True)
-            voice_html = """
-            <div style="background: #0e1017; border: 1px solid #1f222e; border-radius: 8px; padding: 6px; text-align: center;">
-                <button id="recordBtn" onclick="toggleRecord()" style="background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px; width: 100%;">
-                    🎤 Speak Now
-                </button>
-                <div id="statusTxt" style="color: #a855f7; font-size: 10px; margin-top: 3px;"></div>
-                <textarea id="speechOutput" placeholder="Voice text appears here... copy into chat input below." style="width: 100%; height: 32px; background-color: #050508; color: #ffffff; border: 1px solid #1f222e; border-radius: 4px; padding: 4px; font-size: 11px; resize: none; margin-top: 3px;"></textarea>
-            </div>
-            <script>
-                var recognition;
-                var isRecording = false;
-                function toggleRecord() {
-                    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                        alert("Use Google Chrome.");
-                        return;
-                    }
-                    if (!isRecording) {
-                        var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                        recognition = new SpeechRecognition();
-                        recognition.continuous = true;
-                        recognition.interimResults = true;
-                        recognition.lang = 'hi-IN';
-                        recognition.onstart = function() {
-                            isRecording = true;
-                            document.getElementById('recordBtn').innerText = "🛑 Stop";
-                            document.getElementById('recordBtn').style.background = "#ef4444";
-                            document.getElementById('statusTxt').innerText = "Listening...";
-                        };
-                        recognition.onresult = function(event) {
-                            var transcript = '';
-                            for (var i = event.resultIndex; i < event.results.length; ++i) {
-                                transcript += event.results[i][0].transcript;
-                            }
-                            document.getElementById('speechOutput').value = transcript;
-                        };
-                        recognition.onerror = function(event) {
-                            document.getElementById('statusTxt').innerText = "Error: " + event.error;
-                        };
-                        recognition.onend = function() {
-                            isRecording = false;
-                            document.getElementById('recordBtn').innerText = "🎤 Speak Now";
-                            document.getElementById('recordBtn').style.background = "linear-gradient(135deg, #7c3aed, #6366f1)";
-                            document.getElementById('statusTxt').innerText = "Done!";
-                        };
-                        recognition.start();
-                    } else {
-                        recognition.stop();
-                    }
-                }
-            </script>
-            """
-            st.components.v1.html(voice_html, height=100)
 
         # 🖼️ VISUAL ATTACHMENT PREVIEW CHIP
         if format_file or case_file:
-            st.markdown("##### 📎 Attached Files Ready to Submit:")
-            col_p1, col_p2 = st.columns(2)
-            with col_p1:
-                if format_file:
-                    st.markdown(f'<div class="attachment-chip">📐 Template: {format_file.name}</div>', unsafe_allow_html=True)
-            with col_p2:
-                if case_file:
-                    st.markdown(f'<div class="attachment-chip">📸 Case Doc/Image: {case_file.name}</div>', unsafe_allow_html=True)
-                    ext = case_file.name.split('.')[-1].lower()
-                    if ext in ["jpg", "jpeg", "png"]:
-                        st.image(Image.open(case_file), width=120)
+            st.markdown("##### 📎 Attached:")
+            if format_file:
+                st.markdown(f'<div class="attachment-chip">📐 Template: {format_file.name}</div>', unsafe_allow_html=True)
+            if case_file:
+                st.markdown(f'<div class="attachment-chip">📸 File: {case_file.name}</div>', unsafe_allow_html=True)
+                ext = case_file.name.split('.')[-1].lower()
+                if ext in ["jpg", "jpeg", "png"]:
+                    st.image(Image.open(case_file), width=100)
 
-        # 💬 1. CHAT INPUT WITH STICKY SEND (↑) ARROW
-        user_input = st.chat_input("💬 Ask Nyaya AI — Type your instructions here and click Send (↑)...")
+        # 💬 CHAT INPUT
+        user_input = st.chat_input("💬 Ask Nyaya AI...")
 
-        # EXECUTE CHAT WHEN USER CLICKS SEND ARROW
+        # EXECUTE CHAT
         if user_input or ((format_file or case_file) and user_input is not None):
             format_content, _ = read_uploaded_file_content(format_file) if format_file else ("", None)
             case_content, case_image = read_uploaded_file_content(case_file) if case_file else ("", None)
 
             combined_prompt = ""
             if format_content:
-                combined_prompt += f"\n\n--- CUSTOM FORMAT TEMPLATE ATTACHED ---\n{format_content}\n"
+                combined_prompt += f"\n\n--- CUSTOM FORMAT TEMPLATE ---\n{format_content}\n"
             if case_content:
-                combined_prompt += f"\n\n--- CASE FILES & EVIDENCE ATTACHED ---\n{case_content}\n"
+                combined_prompt += f"\n\n--- CASE EVIDENCE ---\n{case_content}\n"
                 
-            prompt_text = user_input if user_input else "Perform deep legal analysis on attached files and build court draft."
+            prompt_text = user_input if user_input else "Perform deep legal analysis and build court draft."
             combined_prompt += f"\n\nUSER INSTRUCTION: {prompt_text}"
 
             save_chat_to_supabase(st.session_state.current_session, "user", prompt_text)
 
             with st.chat_message("user"):
                 st.markdown(prompt_text)
-                if format_file:
-                    st.info(f"📐 Custom Format Template: `{format_file.name}`")
-                if case_file:
-                    st.info(f"📸 Case Document / Photo: `{case_file.name}`")
-                    if case_image:
-                        st.image(case_image, width=300)
+                if case_image:
+                    st.image(case_image, width=200)
 
             with st.chat_message("assistant"):
                 message_placeholder = st.empty()
@@ -858,4 +750,4 @@ if default_api_key:
                 st.session_state.uploader_key += 1
                 st.rerun()
 else:
-    st.info("👈 Server API Key missing. Please check secrets configuration.")
+    st.info("👈 Server API Key missing.")

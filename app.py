@@ -28,42 +28,47 @@ if supabase_url and supabase_key:
     except Exception as e:
         st.error(f"Supabase connection error: {e}")
 
-# 🔐 STYLING FOR UNIFIED MODERN DARK UI ACROSS WHOLE APP
+# 🔐 ADVANCED CUSTOM STYLING FOR FIXATION & PREMIUM GEMINI/CHATGPT LOOK
 st.markdown("""
 <style>
     .stApp {
-        background-color: #0b0c10 !important;
+        background-color: #050508 !important;
         color: #f3f4f6 !important;
-        font-family: 'Inter', sans-serif;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
     section[data-testid="stSidebar"] {
-        background-color: #12141a !important;
-        border-right: 1px solid #2a2d37 !important;
+        background-color: #0b0c10 !important;
+        border-right: 1px solid #1f222e !important;
     }
+    
+    /* Input & Textarea Elements Styling */
     .stTextInput > div > div > input, .stSelectbox > div > div, .stTextArea > div > div > textarea {
-        background-color: #16181e !important;
+        background-color: #0e1017 !important;
         color: #ffffff !important;
-        border: 1px solid #2a2d37 !important;
-        border-radius: 10px !important;
+        border: 1px solid #1f222e !important;
+        border-radius: 12px !important;
     }
     .stTextInput > div > div > input:focus, .stTextArea > div > div > textarea:focus {
         border-color: #8b5cf6 !important;
-        box-shadow: 0 0 8px rgba(139, 92, 246, 0.4) !important;
+        box-shadow: 0 0 12px rgba(139, 92, 246, 0.3) !important;
     }
+    
+    /* Buttons Styling */
     .stButton > button {
         background: linear-gradient(135deg, #7c3aed, #6366f1) !important;
         color: white !important;
-        border-radius: 10px !important;
+        border-radius: 12px !important;
         border: none !important;
-        padding: 10px 20px !important;
+        padding: 10px 22px !important;
         font-weight: 600 !important;
-        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25) !important;
-        transition: all 0.3s ease;
+        box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3) !important;
+        transition: all 0.2s ease;
     }
     .stButton > button:hover {
         transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4) !important;
+        box-shadow: 0 6px 18px rgba(124, 58, 237, 0.5) !important;
     }
+    
     .stDownloadButton > button {
         background: #1e1b4b !important;
         color: #c084fc !important;
@@ -71,23 +76,56 @@ st.markdown("""
         border-radius: 10px !important;
         font-weight: 600 !important;
     }
-    .stDownloadButton > button:hover {
-        background: #a855f7 !important;
-        color: white !important;
-    }
+    
     .user-profile-card {
-        background-color: #16181e;
-        border: 1px solid #2a2d37;
+        background-color: #0e1017;
+        border: 1px solid #1f222e;
         border-radius: 12px;
         padding: 14px;
         margin-bottom: 20px;
     }
-    .chat-header-card {
-        background: linear-gradient(135deg, #16181e, #1f1d2b);
-        border: 1px solid #2a2d37;
-        border-radius: 14px;
-        padding: 16px 20px;
-        margin-bottom: 20px;
+
+    /* Target main block bottom padding so scroll content doesn't get covered by fixed bar */
+    .main .block-container {
+        padding-bottom: 320px !important;
+    }
+
+    /* Fixed Bottom Control Deck Container Styling */
+    .bottom-deck-box {
+        background-color: #0a0b10;
+        border: 1px solid #1f222e;
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 -10px 30px rgba(0,0,0,0.7);
+        margin-top: 20px;
+    }
+
+    .welcome-hero {
+        text-align: center;
+        padding: 30px 20px 20px 20px;
+    }
+    .welcome-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 6px;
+    }
+    .welcome-subtitle {
+        color: #9ca3af;
+        font-size: 15px;
+        margin-bottom: 25px;
+    }
+    
+    .case-studio-banner {
+        background-color: #0e1017;
+        border: 1px solid #1f222e;
+        border-radius: 16px;
+        padding: 20px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 0 auto 30px auto;
+        max-width: 750px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -200,6 +238,15 @@ if not st.session_state.user:
 
 # ----------------- LOGGED IN APPLICATION DASHBOARD -----------------
 current_user_email = st.session_state.user.email
+display_user_name = current_user_email.split('@')[0].capitalize()
+
+# Extract user name from metadata if available
+try:
+    meta_name = st.session_state.user.user_metadata.get("full_name")
+    if meta_name:
+        display_user_name = meta_name.split()[0].capitalize()
+except Exception:
+    pass
 
 nav_options = ["💬 Case Studio", "📂 Chat History", "⚙️ Settings"]
 
@@ -221,7 +268,6 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    # Safe navigation index lookup
     curr_idx = nav_options.index(st.session_state.nav_menu) if st.session_state.nav_menu in nav_options else 0
     menu = st.radio("Navigation", nav_options, index=curr_idx, label_visibility="collapsed")
     st.session_state.nav_menu = menu
@@ -459,134 +505,159 @@ if api_key:
     elif menu == "💬 Case Studio":
         sessions = get_supabase_sessions()
 
-        st.markdown("""
-        <div class="chat-header-card">
-            <h3 style="margin: 0; font-size: 20px; font-weight: 700; color: #ffffff;">💬 Deep Legal Analysis & Drafting Studio</h3>
-            <p style="margin: 0; font-size: 13px; color: #9ca3af;">Upload Master Format, Case Documents, Photos & Evidence for Deep AI Analysis</p>
-        </div>
-        """, unsafe_allow_html=True)
+        messages = get_supabase_chat_history(st.session_state.current_session)
 
-        col_c1, col_c2 = st.columns([3, 1])
-        with col_c1:
-            options = [st.session_state.current_session] + [s for s in sessions if s != st.session_state.current_session]
-            current_chat_name = st.selectbox("Active Case File / Chat:", options, index=0)
-            st.session_state.current_session = current_chat_name
-        with col_c2:
-            st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
-            if st.button("➕ New Chat", use_container_width=True):
-                st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
-                st.rerun()
-
-        messages = get_supabase_chat_history(current_chat_name)
-
+        # 🌟 EXACT HERO HOME SECTION (MATCHING USER SCREENSHOT PERFECTLY)
         if not messages:
-            st.markdown("""
-            <div style="text-align: center; padding: 30px; background-color: #16181e; border: 1px dashed #2a2d37; border-radius: 14px; margin-bottom: 20px;">
-                <div style="font-size: 40px;">⚖️</div>
-                <h4 style="margin: 10px 0 5px 0; color: #ffffff;">Deep Legal Brain Ready</h4>
-                <p style="color: #6b7280; font-size: 14px;">Upload photos of documents/case files for ChatGPT-level analysis, cross-questions, loopholes, and court drafts.</p>
+            st.markdown(f"""
+            <div class="welcome-hero">
+                <div style="margin-bottom: 15px;">
+                    <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M50 15V80M50 15L25 35M50 15L75 35" stroke="url(#paint0_linear)" stroke-width="3" stroke-linecap="round"/>
+                        <path d="M15 50C15 50 25 65 35 65C45 65 35 50 35 50" stroke="url(#paint1_linear)" stroke-width="3"/>
+                        <path d="M65 50C65 50 75 65 85 65C95 65 85 50 85 50" stroke="url(#paint2_linear)" stroke-width="3"/>
+                        <path d="M38 80H62" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round"/>
+                        <defs>
+                            <linearGradient id="paint0_linear" x1="50" y1="15" x2="50" y2="80" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#c084fc"/>
+                                <stop offset="1" stop-color="#6366f1"/>
+                            </linearGradient>
+                            <linearGradient id="paint1_linear" x1="15" y1="50" x2="35" y2="65" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#a855f7"/>
+                                <stop offset="1" stop-color="#6366f1"/>
+                            </linearGradient>
+                            <linearGradient id="paint2_linear" x1="65" y1="50" x2="85" y2="65" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#a855f7"/>
+                                <stop offset="1" stop-color="#6366f1"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="welcome-title">Welcome back, <span style="color: #a855f7;">{display_user_name}</span></div>
+                <div class="welcome-subtitle">Your AI Legal Assistant is ready to support your legal work.</div>
             </div>
             """, unsafe_allow_html=True)
 
-        # 📜 CHAT MESSAGES DISPLAY AREA
-        for idx, message in enumerate(messages):
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-                
-                upper_content = message["content"].upper()
-                if message["role"] == "assistant" and "START_DRAFT" in upper_content:
-                    docx_data = create_court_ready_docx(message["content"])
-                    st.download_button(
-                        label="📥 Download Court-Ready Word (.docx)",
-                        data=docx_data,
-                        file_name=f"Court_Draft_{idx}.docx",
-                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        key=f"docx_{idx}"
-                    )
+            col_b1, col_b2, col_b3 = st.columns([1, 4, 1])
+            with col_b2:
+                st.markdown("""
+                <div class="case-studio-banner">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span style="font-size: 28px;">📁</span>
+                        <div>
+                            <div style="font-weight: 700; font-size: 16px; color: #ffffff;">Case Studio</div>
+                            <div style="font-size: 13px; color: #9ca3af;">Describe your case, upload documents, and get AI-powered legal guidance.</div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
+        # 📜 CHAT MESSAGES DISPLAY AREA (SCROLLS NATIVELY WHILE BOTTOM REMAINS FIXED)
+        else:
+            col_hdr1, col_hdr2 = st.columns([4, 1])
+            with col_hdr1:
+                st.markdown(f"#### 💬 Case: `{st.session_state.current_session}`")
+            with col_hdr2:
+                if st.button("➕ New Case", use_container_width=True):
+                    st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
+                    st.rerun()
+
+            for idx, message in enumerate(messages):
+                with st.chat_message(message["role"]):
+                    st.markdown(message["content"])
+                    
+                    upper_content = message["content"].upper()
+                    if message["role"] == "assistant" and "START_DRAFT" in upper_content:
+                        docx_data = create_court_ready_docx(message["content"])
+                        st.download_button(
+                            label="📥 Download Court-Ready Word (.docx)",
+                            data=docx_data,
+                            file_name=f"Court_Draft_{idx}.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            key=f"docx_{idx}"
+                        )
+
+        # ----------------- FIXED BOTTOM CONTROL DECK (GEMINI / CHATGPT STYLE) -----------------
         st.markdown("<br>", unsafe_allow_html=True)
-
-        # 🎙️ VOICE TYPING ASSISTANT
-        st.markdown("##### 🎙️ Voice Typing Assistant (बोलकर टाइप करें):")
+        st.markdown('<div class="bottom-deck-box">', unsafe_allow_html=True)
         
-        voice_html = """
-        <div style="background-color: #16181e; padding: 15px; border-radius: 12px; border: 1px solid #2a2d37; margin-bottom: 20px;">
-            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
-                <button id="recordBtn" onclick="toggleRecord()" style="background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                    🎤 स्टार्ट वॉइस रिकॉर्डिंग (Hindi/English)
-                </button>
-                <span id="statusTxt" style="color: #a855f7; font-size: 13px; font-weight: 500;"></span>
-            </div>
-            <textarea id="speechOutput" placeholder="जो आप बोलेंगे वो यहाँ लाइव टाइप होगा... फिर इसे नीचे दिए गए बॉक्स में कॉपी करें।" style="width: 100%; height: 80px; background-color: #0b0c10; color: #ffffff; border: 1px solid #2a2d37; border-radius: 8px; padding: 10px; font-size: 14px; resize: none;"></textarea>
-        </div>
+        # 1. Main Ask Input Field
+        user_input = st.chat_input("💬 1. Ask Nyaya AI — Describe your case in detail...")
 
-        <script>
-            var recognition;
-            var isRecording = false;
+        # 2. Bottom 3-Card Deck (Template, Documents, Voice)
+        col_deck1, col_deck2, col_deck3 = st.columns(3)
+        
+        with col_deck1:
+            st.markdown("##### 📤 2. Upload Template")
+            st.caption("Upload format (e.g., section format, notice, petition format etc.)")
+            format_file = st.file_uploader("Template File", type=["docx", "txt"], key=f"format_file_{st.session_state.uploader_key}", label_visibility="collapsed")
 
-            function toggleRecord() {
-                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                    alert("आपका ब्राउज़र वॉइस इनपुट सपोर्ट नहीं करता। गूगल क्रोम का उपयोग करें।");
-                    return;
-                }
-
-                if (!isRecording) {
-                    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                    recognition = new SpeechRecognition();
-                    recognition.continuous = true;
-                    recognition.interimResults = true;
-                    recognition.lang = 'hi-IN';
-
-                    recognition.onstart = function() {
-                        isRecording = true;
-                        document.getElementById('recordBtn').innerText = "🛑 रिकॉर्डिंग रोकें (Stop)";
-                        document.getElementById('recordBtn').style.background = "#ef4444";
-                        document.getElementById('statusTxt').innerText = "🎙️ माइक चालू है... बोलिए!";
-                    };
-
-                    recognition.onresult = function(event) {
-                        var transcript = '';
-                        for (var i = event.resultIndex; i < event.results.length; ++i) {
-                            transcript += event.results[i][0].transcript;
-                        }
-                        document.getElementById('speechOutput').value = transcript;
-                    };
-
-                    recognition.onerror = function(event) {
-                        document.getElementById('statusTxt').innerText = "Error: " + event.error;
-                    };
-
-                    recognition.onend = function() {
-                        isRecording = false;
-                        document.getElementById('recordBtn').innerText = "🎤 स्टार्ट वॉइस रिकॉर्डिंग (Hindi/English)";
-                        document.getElementById('recordBtn').style.background = "linear-gradient(135deg, #7c3aed, #6366f1)";
-                        document.getElementById('statusTxt').innerText = "✅ रिकॉर्डिंग समाप्त। आप टेक्स्ट कॉपी कर सकते हैं।";
-                    };
-
-                    recognition.start();
-                } else {
-                    recognition.stop();
-                }
-            }
-        </script>
-        """
-        st.components.v1.html(voice_html, height=160)
-
-        # 📎 ATTACHMENT BOX WITH DYNAMIC RESET KEY
-        with st.expander("📎 Attach Photos / Case Files / Custom Format (Optional)", expanded=False):
-            col_f1, col_f2 = st.columns(2)
-            with col_f1:
-                format_file = st.file_uploader("1. Custom Format (.docx, .txt)", type=["docx", "txt"], key=f"format_file_{st.session_state.uploader_key}")
-            with col_f2:
-                case_file = st.file_uploader("2. Case Docs or Photos (.jpg, .png, .docx, .txt)", type=["docx", "txt", "jpg", "jpeg", "png"], key=f"case_file_{st.session_state.uploader_key}")
-            
+        with col_deck2:
+            st.markdown("##### 📤 3. Upload Case Documents")
+            st.caption("Upload documents or image related to your case for analysis.")
+            case_file = st.file_uploader("Case Files / Photos", type=["docx", "txt", "jpg", "jpeg", "png"], key=f"case_file_{st.session_state.uploader_key}", label_visibility="collapsed")
             if case_file:
                 ext = case_file.name.split('.')[-1].lower()
                 if ext in ["jpg", "jpeg", "png"]:
-                    st.image(Image.open(case_file), caption=f"Selected Photo: {case_file.name}", width=200)
+                    st.caption(f"📸 Selected: `{case_file.name}`")
 
-        # 💬 MAIN CHAT INPUT WITH SUBMIT ARROW
-        user_input = st.chat_input("यहाँ केस के तथ्य/निर्देश लिखें... (फोटो अटैच होने पर Send एरो दबाते ही एक साथ अपलोड होगा)")
+        with col_deck3:
+            st.markdown("##### 🎙️ Voice Assistant")
+            st.caption("Speak to Nyaya AI and get instant legal help.")
+            voice_html = """
+            <div style="text-align: center; margin-top: 5px;">
+                <button id="recordBtn" onclick="toggleRecord()" style="background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer; width: 100%;">
+                    🎤 Speak Now (Hindi/English)
+                </button>
+                <div id="statusTxt" style="color: #a855f7; font-size: 11px; margin-top: 4px;"></div>
+                <textarea id="speechOutput" placeholder="Voice text appears here... copy into chat box." style="width: 100%; height: 45px; background-color: #050508; color: #ffffff; border: 1px solid #1f222e; border-radius: 8px; padding: 6px; font-size: 12px; resize: none; margin-top: 5px;"></textarea>
+            </div>
+            <script>
+                var recognition;
+                var isRecording = false;
+                function toggleRecord() {
+                    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                        alert("Browser speech recognition not supported. Use Chrome.");
+                        return;
+                    }
+                    if (!isRecording) {
+                        var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                        recognition = new SpeechRecognition();
+                        recognition.continuous = true;
+                        recognition.interimResults = true;
+                        recognition.lang = 'hi-IN';
+                        recognition.onstart = function() {
+                            isRecording = true;
+                            document.getElementById('recordBtn').innerText = "🛑 Stop";
+                            document.getElementById('recordBtn').style.background = "#ef4444";
+                            document.getElementById('statusTxt').innerText = "🎙️ Listening...";
+                        };
+                        recognition.onresult = function(event) {
+                            var transcript = '';
+                            for (var i = event.resultIndex; i < event.results.length; ++i) {
+                                transcript += event.results[i][0].transcript;
+                            }
+                            document.getElementById('speechOutput').value = transcript;
+                        };
+                        recognition.onerror = function(event) {
+                            document.getElementById('statusTxt').innerText = "Error: " + event.error;
+                        };
+                        recognition.onend = function() {
+                            isRecording = false;
+                            document.getElementById('recordBtn').innerText = "🎤 Speak Now";
+                            document.getElementById('recordBtn').style.background = "linear-gradient(135deg, #7c3aed, #6366f1)";
+                            document.getElementById('statusTxt').innerText = "✅ Done! Copy text.";
+                        };
+                        recognition.start();
+                    } else {
+                        recognition.stop();
+                    }
+                }
+            </script>
+            """
+            st.components.v1.html(voice_html, height=130)
+
+        st.markdown('</div>', unsafe_allow_html=True)
 
         # ONLY EXECUTE WHEN THE SUBMIT ARROW (↑) IS CLICKED
         if user_input:
@@ -604,7 +675,7 @@ if api_key:
                 
             combined_prompt += f"\n\nUSER INSTRUCTION: {user_input}"
 
-            save_chat_to_supabase(current_chat_name, "user", user_input)
+            save_chat_to_supabase(st.session_state.current_session, "user", user_input)
 
             with st.chat_message("user"):
                 st.markdown(user_input)
@@ -632,7 +703,7 @@ if api_key:
                     st.error(f"Error: {str(e)}")
                 
             if full_response:
-                save_chat_to_supabase(current_chat_name, "assistant", full_response)
+                save_chat_to_supabase(st.session_state.current_session, "assistant", full_response)
                 # 🔄 CLEAR UPLOADER FOR NEXT MESSAGES ONCE SENT SUCCESSFULLY
                 st.session_state.uploader_key += 1
                 st.rerun()

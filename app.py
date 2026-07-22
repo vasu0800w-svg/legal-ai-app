@@ -59,20 +59,6 @@ st.markdown("""
     .stButton > button:hover {
         background: linear-gradient(135deg, #6d28d9, #4f46e5) !important;
     }
-    .divider {
-        display: flex;
-        align-items: center;
-        text-align: center;
-        color: #6b7280;
-        margin: 20px 0;
-    }
-    .divider::before, .divider::after {
-        content: '';
-        flex: 1;
-        border-bottom: 1px solid #2a2d37;
-    }
-    .divider:not(:empty)::before { margin-right: .25em; }
-    .divider:not(:empty)::after { margin-left: .25em; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -109,25 +95,9 @@ def signup_user(email, password, full_name, phone):
     except Exception as e:
         st.error(f"Signup failed: {e}")
 
-def get_google_auth_url():
-    if supabase:
-        try:
-            # Using official Supabase SDK function for OAuth URL
-            res = supabase.auth.sign_in_with_oauth({
-                "provider": "google",
-                "options": {
-                    "redirect_to": "https://nyaya-ai-studio.streamlit.app"
-                }
-            })
-            return res.url
-        except Exception as e:
-            return None
-    return None
-
 # ----------------- LOGIN / SIGNUP SCREEN -----------------
 if not st.session_state.user:
     st.markdown("<br>", unsafe_allow_html=True)
-    google_url = get_google_auth_url()
     
     if st.session_state.auth_mode == "login":
         st.markdown("""
@@ -144,25 +114,13 @@ if not st.session_state.user:
         email = st.text_input("Email Address", placeholder="name@example.com", key="login_email")
         password = st.text_input("Password", type="password", placeholder="••••••••", key="login_pass")
         
+        st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Login  ➔", key="btn_login"):
             if email and password and supabase:
                 login_user(email, password)
             else:
                 st.warning("Please enter Email & Password.")
                 
-        st.markdown("<div class='divider'>or continue with</div>", unsafe_allow_html=True)
-        
-        if google_url:
-            st.markdown(f'''
-            <a href="{google_url}" target="_self" style="text-decoration: none;">
-                <div style="background-color: #16181e; border: 1px solid #2a2d37; border-radius: 12px; padding: 12px; text-align: center; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                    🌐 Continue with Google
-                </div>
-            </a>
-            ''', unsafe_allow_html=True)
-        else:
-            st.error("Google Auth unavailable.")
-        
         st.markdown("<br>", unsafe_allow_html=True)
         col_s1, col_s2, col_s3 = st.columns([1, 2, 1])
         with col_s2:
@@ -186,6 +144,7 @@ if not st.session_state.user:
         
         agree = st.checkbox("I agree to the Terms of Service and Privacy Policy")
         
+        st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Sign Up  ➔", key="btn_signup"):
             if not agree:
                 st.warning("Please agree to the Terms & Privacy Policy.")
@@ -196,17 +155,6 @@ if not st.session_state.user:
             else:
                 st.warning("Please fill all required fields.")
                 
-        st.markdown("<div class='divider'>or continue with</div>", unsafe_allow_html=True)
-        
-        if google_url:
-            st.markdown(f'''
-            <a href="{google_url}" target="_self" style="text-decoration: none;">
-                <div style="background-color: #16181e; border: 1px solid #2a2d37; border-radius: 12px; padding: 12px; text-align: center; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                    🌐 Continue with Google
-                </div>
-            </a>
-            ''', unsafe_allow_html=True)
-        
         st.markdown("<br>", unsafe_allow_html=True)
         col_s1, col_s2, col_s3 = st.columns([1, 2, 1])
         with col_s2:

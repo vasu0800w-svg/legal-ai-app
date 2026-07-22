@@ -15,7 +15,7 @@ TEMPLATES_FOLDER = "master_templates"
 if not os.path.exists(TEMPLATES_FOLDER):
     os.makedirs(TEMPLATES_FOLDER)
 
-# 🔑 Fetch Secrets
+# 🔑 Fetch Secrets (Hidden from UI)
 default_api_key = st.secrets.get("GEMINI_API_KEY", "")
 supabase_url = st.secrets.get("SUPABASE_URL", "")
 supabase_key = st.secrets.get("SUPABASE_KEY", "")
@@ -28,7 +28,7 @@ if supabase_url and supabase_key:
     except Exception as e:
         st.error(f"Supabase connection error: {e}")
 
-# 🔐 STYLING MATCHING EXACT SCREENSHOT WITH NEW FEATURES
+# 🔐 STYLING MATCHING EXACT SIDEBAR PHOTO
 st.markdown("""
 <style>
     .stApp {
@@ -63,18 +63,34 @@ st.markdown("""
         border: 1px solid #a855f7 !important;
         border-radius: 10px !important;
     }
-    
-    .user-profile-card {
-        background-color: #0e1017;
-        border: 1px solid #1f222e;
-        border-radius: 12px;
-        padding: 14px;
+
+    .pro-banner {
+        background: linear-gradient(135deg, #1e1b4b, #0f172a);
+        border: 1px solid #3b0764;
+        border-radius: 14px;
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         margin-bottom: 20px;
+    }
+
+    .user-avatar {
+        background: linear-gradient(135deg, #7c3aed, #6366f1);
+        color: white;
+        border-radius: 50%;
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 13px;
     }
 
     .welcome-hero {
         text-align: center;
-        padding: 25px 20px 15px 20px;
+        padding: 20px 20px 10px 20px;
     }
     .welcome-title {
         font-size: 32px;
@@ -233,41 +249,7 @@ try:
 except Exception:
     pass
 
-nav_options = ["💬 Case Studio", "📂 Chat History", "👤 Manage Account", "⚙️ Settings"]
-
-with st.sidebar:
-    st.markdown("""
-    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-        <span style="font-size: 32px;">⚖️</span>
-        <div>
-            <h3 style="margin:0; font-size: 18px; font-weight:700;">Nyaya Assist <span style="color:#a855f7;">AI</span></h3>
-            <span style="font-size:11px; color:#9ca3af;">Legal Drafting Studio</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-    <div class="user-profile-card">
-        <div style="font-size: 11px; color: #9ca3af;">LOGGED IN ADVOCATE</div>
-        <div style="font-weight: 600; font-size: 14px; color: #ffffff; word-break: break-all;">👤 {display_user_name}</div>
-        <div style="font-size: 12px; color: #9ca3af;">{current_user_email}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    curr_idx = nav_options.index(st.session_state.nav_menu) if st.session_state.nav_menu in nav_options else 0
-    menu = st.radio("Navigation", nav_options, index=curr_idx, label_visibility="collapsed")
-    st.session_state.nav_menu = menu
-    
-    st.markdown("---")
-    
-    with st.expander("🔑 Gemini API Settings"):
-        api_key = st.text_input("API Key", value=default_api_key, type="password")
-
-    st.markdown("<br>"*3, unsafe_allow_html=True)
-    if st.button("🚪 Log Out", use_container_width=True):
-        st.session_state.user = None
-        st.session_state.auth_mode = "login"
-        st.rerun()
+user_initials = "".join([part[0].upper() for part in display_user_name.split()[:2]]) if display_user_name else "VT"
 
 def save_chat_to_supabase(session_name, role, content):
     if supabase:
@@ -399,9 +381,75 @@ def create_court_ready_docx(text):
     bio.seek(0)
     return bio
 
-if api_key:
-    os.environ["GEMINI_API_KEY"] = api_key
-    genai.configure(api_key=api_key)
+# ----------------- 🎯 SIDEBAR NAVIGATION MATCHING YOUR PHOTO EXACTLY -----------------
+nav_options = ["💬 Case Studio", "📖 Library", "📁 My Cases", "⚙️ Settings", "📂 Chat History"]
+
+with st.sidebar:
+    st.markdown("""
+    <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 38px;">⚖️</div>
+        <h3 style="margin:0; font-size: 19px; font-weight:700;">Nyaya Assist <span style="color:#a855f7;">AI</span></h3>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="pro-banner">
+        <div>
+            <div style="font-weight: 700; font-size: 13px; color: #ffffff;">Upgrade to Pro</div>
+            <div style="font-size: 11px; color: #9ca3af;">Unlock advanced features</div>
+        </div>
+        <span style="font-size: 16px;">➔</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if st.button("➕ New Case", key="btn_side_newcase", use_container_width=True):
+        st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
+        st.session_state.nav_menu = "💬 Case Studio"
+        st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    curr_idx = nav_options.index(st.session_state.nav_menu) if st.session_state.nav_menu in nav_options else 0
+    menu = st.radio("Menu", nav_options, index=curr_idx, label_visibility="collapsed")
+    st.session_state.nav_menu = menu
+
+    st.markdown("---")
+    st.markdown("<div style='font-size: 13px; font-weight:700; color:#9ca3af; margin-bottom:10px;'>Chat History</div>", unsafe_allow_html=True)
+
+    # RECENT CHATS LIST IN SIDEBAR
+    sidebar_sessions = get_supabase_sessions()
+    if sidebar_sessions:
+        for sess in sidebar_sessions[:5]:
+            if st.button(f"💬 {sess[:24]}...", key=f"sbar_sess_{sess}", use_container_width=True):
+                st.session_state.current_session = sess
+                st.session_state.nav_menu = "💬 Case Studio"
+                st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("💬 View All Chats", use_container_width=True):
+        st.session_state.nav_menu = "📂 Chat History"
+        st.rerun()
+
+    st.markdown("<br>"*2, unsafe_allow_html=True)
+    if st.button("🚪 Logout", use_container_width=True):
+        st.session_state.user = None
+        st.session_state.auth_mode = "login"
+        st.rerun()
+
+# ----------------- TOP APP BAR -----------------
+col_top_h1, col_top_h2 = st.columns([5, 1])
+with col_top_h1:
+    st.markdown("### Nyaya Assist <span style='color:#a855f7;'>AI</span>", unsafe_allow_html=True)
+with col_top_h2:
+    st.markdown(f"""
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
+        <span style="font-size: 18px; cursor: pointer;">🔔</span>
+        <div class="user-avatar">{user_initials}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+if default_api_key:
+    os.environ["GEMINI_API_KEY"] = default_api_key
+    genai.configure(api_key=default_api_key)
     
     if "app_lang" not in st.session_state:
         st.session_state.app_lang = "Pure Hindi (Formal Legal)"
@@ -444,25 +492,20 @@ if api_key:
         generation_config={"temperature": 0.0}
     )
 
-    if menu == "👤 Manage Account":
-        st.markdown("## 👤 Manage Profile & Account")
-        st.markdown("Your advocate profile credentials and account management.")
-        
-        st.info(f"<b>Registered Email:</b> `{current_user_email}`", unsafe_allow_html=True)
-        st.info(f"<b>Advocate Name:</b> `{display_user_name}`", unsafe_allow_html=True)
-        
-        st.markdown("---")
-        st.markdown("### 🔒 Security Settings")
-        new_password = st.text_input("New Password", type="password", placeholder="••••••••")
-        if st.button("🔑 Update Password"):
-            if new_password and supabase:
-                try:
-                    supabase.auth.update_user({"password": new_password})
-                    st.success("✅ Password updated successfully!")
-                except Exception as e:
-                    st.error(f"Error updating password: {e}")
-            else:
-                st.warning("Please enter a new password.")
+    if menu == "📖 Library":
+        st.markdown("## 📖 Legal Master Library")
+        st.markdown("Access standard legal formats, petition templates, and Bare Acts database.")
+        st.info("📚 Database contains High Court / Supreme Court Master Petition Templates & Standard Legal Drafts.")
+
+    elif menu == "📁 My Cases":
+        st.markdown("## 📁 My Cases & Documents")
+        st.markdown("All your active court drafts and client case files in one place.")
+        sessions = get_supabase_sessions()
+        if sessions:
+            for s in sessions:
+                st.markdown(f"- 📁 **Case Session:** `{s}`")
+        else:
+            st.info("No active cases found.")
 
     elif menu == "⚙️ Settings":
         st.markdown("## ⚙️ App & Profile Settings")
@@ -730,8 +773,7 @@ if api_key:
                 
             if full_response:
                 save_chat_to_supabase(st.session_state.current_session, "assistant", full_response)
-                # 🔄 AUTO CLEAR UPLOADER FOR NEXT TURN
                 st.session_state.uploader_key += 1
                 st.rerun()
 else:
-    st.info("👈 Please enter your Gemini API Key in the sidebar settings.")
+    st.info("👈 Server API Key missing. Please check secrets configuration.")

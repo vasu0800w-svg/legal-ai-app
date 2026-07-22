@@ -28,7 +28,7 @@ if supabase_url and supabase_key:
     except Exception as e:
         st.error(f"Supabase connection error: {e}")
 
-# 🔐 PREMIUM MODERN CSS STYLING FOR SLEEK SIDEBAR & UI
+# 🔐 PREMIUM MODERN CSS STYLING
 st.markdown("""
 <style>
     .stApp {
@@ -113,14 +113,15 @@ st.markdown("""
         background: linear-gradient(135deg, #7c3aed, #6366f1);
         color: white;
         border-radius: 50%;
-        width: 36px;
-        height: 36px;
+        width: 38px;
+        height: 38px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 700;
-        font-size: 13px;
+        font-size: 14px;
         box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
+        cursor: pointer;
     }
 
     .welcome-hero {
@@ -469,17 +470,39 @@ with st.sidebar:
         st.session_state.auth_mode = "login"
         st.rerun()
 
+# ----------------- 👤 PROFILE POPUP MODAL FUNCTION -----------------
+@st.dialog("👤 Manage Account & Subscription")
+def show_profile_dialog():
+    st.markdown(f"### Advocate: **{display_user_name}**")
+    st.markdown(f"📧 **Email:** `{current_user_email}`")
+    st.markdown("👑 **Subscription Status:** `Free Tier` *(Upgrade to Pro for unlimited access)*")
+    
+    st.markdown("---")
+    st.markdown("#### 🔒 Change Password")
+    new_pass = st.text_input("New Password", type="password", placeholder="••••••••", key="modal_new_pass")
+    if st.button("Update Password", key="modal_update_pass_btn"):
+        if new_pass and supabase:
+            try:
+                supabase.auth.update_user({"password": new_pass})
+                st.success("✅ Password updated successfully!")
+            except Exception as e:
+                st.error(f"Error: {e}")
+        else:
+            st.warning("Please enter a valid password.")
+            
+    st.markdown("---")
+    if st.button("🚀 Upgrade to Pro Plan", key="modal_upgrade_btn", use_container_width=True):
+        st.info("Pro Plan subscription gateway will be integrated soon!")
+
 # ----------------- TOP APP BAR -----------------
-col_top_h1, col_top_h2 = st.columns([5, 1])
+col_top_h1, col_top_h2, col_top_h3 = st.columns([4, 1, 1])
 with col_top_h1:
     st.markdown("### Nyaya Assist <span style='color:#a855f7;'>AI</span>", unsafe_allow_html=True)
 with col_top_h2:
-    st.markdown(f"""
-    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
-        <span style="font-size: 18px; cursor: pointer;">🔔</span>
-        <div class="user-avatar">{user_initials}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("<div style='text-align: right; padding-top: 6px; color: #9ca3af; font-size: 14px;'>🔔</div>", unsafe_allow_html=True)
+with col_top_h3:
+    if st.button(user_initials, key="btn_open_profile_modal", use_container_width=True):
+        show_profile_dialog()
 
 if default_api_key:
     os.environ["GEMINI_API_KEY"] = default_api_key

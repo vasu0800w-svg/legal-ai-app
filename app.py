@@ -40,13 +40,13 @@ st.markdown("""
         background-color: #12141a !important;
         border-right: 1px solid #2a2d37 !important;
     }
-    .stTextInput > div > div > input, .stSelectbox > div > div {
+    .stTextInput > div > div > input, .stSelectbox > div > div, .stTextArea > div > div > textarea {
         background-color: #16181e !important;
         color: #ffffff !important;
         border: 1px solid #2a2d37 !important;
         border-radius: 10px !important;
     }
-    .stTextInput > div > div > input:focus {
+    .stTextInput > div > div > input:focus, .stTextArea > div > div > textarea:focus {
         border-color: #8b5cf6 !important;
         box-shadow: 0 0 8px rgba(139, 92, 246, 0.4) !important;
     }
@@ -347,6 +347,7 @@ def create_court_ready_docx(text):
     return bio
 
 if api_key:
+    os.environ["GEMINI_API_KEY"] = api_key
     genai.configure(api_key=api_key)
     
     if "app_lang" not in st.session_state:
@@ -385,7 +386,7 @@ if api_key:
     """
     
     model = genai.GenerativeModel(
-        model_name="gemini-3.5-flash",
+        model_name="gemini-1.5-flash",
         system_instruction=system_instruction,
         generation_config={"temperature": 0.0}
     )
@@ -497,37 +498,74 @@ if api_key:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # 🎙️ VOICE INPUT INTEGRATION
-        st.markdown("##### 🎙️ Voice Assistant / बोलकर टाइप करें:")
-        voice_js = """
-        <script>
-            function startDictation() {
-                if (window.hasOwnProperty('webkitSpeechRecognition')) {
-                    var recognition = new webkitSpeechRecognition();
-                    recognition.continuous = false;
-                    recognition.interimResults = false;
-                    recognition.lang = "hi-IN";
-                    recognition.start();
+        # 🎙️ RELIABLE NATIVE VOICE INTEGRATION
+        st.markdown("##### 🎙️ Voice Typing Assistant (बोलकर टाइप करें):")
+        
+        voice_html = """
+        <div style="background-color: #16181e; padding: 15px; border-radius: 12px; border: 1px solid #2a2d37;">
+            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+                <button id="recordBtn" onclick="toggleRecord()" style="background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                    🎤 स्टार्ट वॉइस रिकॉर्डिंग (Hindi/English)
+                </button>
+                <span id="statusTxt" style="color: #a855f7; font-size: 13px; font-weight: 500;"></span>
+            </div>
+            <textarea id="speechOutput" placeholder="जो आप बोलेंगे वो यहाँ लाइव टाइप होगा... फिर इसे नीचे दिए गए बॉक्स में कॉपी करें।" style="width: 100%; height: 80px; background-color: #0b0c10; color: #ffffff; border: 1px solid #2a2d37; border-radius: 8px; padding: 10px; font-size: 14px; resize: none;"></textarea>
+        </div>
 
-                    recognition.onresult = function(e) {
-                        var spokenText = e.results[0][0].transcript;
-                        var chatInput = window.parent.document.querySelector('textarea[data-testid="stChatInputTextArea"]');
-                        if (chatInput) {
-                            chatInput.value = spokenText;
-                            chatInput.dispatchEvent(new Event('input', { bubbles: true }));
-                        }
+        <script>
+            var recognition;
+            var isRecording = false;
+
+            function toggleRecord() {
+                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                    alert("आपका ब्राउज़र वॉइस इनपुट सपोर्ट नहीं करता। गूगल क्रोम का उपयोग करें।");
+                    return;
+                }
+
+                if (!isRecording) {
+                    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    recognition = new SpeechRecognition();
+                    recognition.continuous = true;
+                    recognition.interimResults = true;
+                    recognition.lang = 'hi-IN';
+
+                    recognition.onstart = function() {
+                        isRecording = true;
+                        document.getElementById('recordBtn').innerText = "🛑 रिकॉर्डिंग रोकें (Stop)";
+                        document.getElementById('recordBtn').style.background = "#ef4444";
+                        document.getElementById('statusTxt').innerText = "🎙️ माइक चालू है... बोलिए!";
                     };
-                    recognition.onerror = function(e) { recognition.stop(); }
+
+                    recognition.onresult = function(event) {
+                        var transcript = '';
+                        for (var i = event.resultIndex; i < event.results.length; ++i) {
+                            transcript += event.results[i][0].transcript;
+                        }
+                        document.getElementById('speechOutput').value = transcript;
+                    };
+
+                    recognition.onerror = function(event) {
+                        document.getElementById('statusTxt').innerText = "Error: " + event.error;
+                    };
+
+                    recognition.onend = function() {
+                        isRecording = false;
+                        document.getElementById('recordBtn').innerText = "🎤 स्टार्ट वॉइस रिकॉर्डिंग (Hindi/English)";
+                        document.getElementById('recordBtn').style.background = "linear-gradient(135deg, #7c3aed, #6366f1)";
+                        document.getElementById('statusTxt').innerText = "✅ रिकॉर्डिंग समाप्त। आप टेक्स्ट कॉपी कर सकते हैं।";
+                    };
+
+                    recognition.start();
+                } else {
+                    recognition.stop();
                 }
             }
         </script>
-        <button onclick="startDictation()" style="background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-            🎤 स्टार्ट वॉइस टाइपिंग (Hindi/English)
-        </button>
         """
-        st.components.v1.html(voice_js, height=50)
+        st.components.v1.html(voice_html, height=160)
 
-        user_input = st.chat_input("यहाँ केस के तथ्य या एनालिसिस निर्देश लिखें...")
+        st.markdown("<br>", unsafe_allow_html=True)
+        user_input = st.chat_input("यहाँ केस के तथ्य, निर्देश या वॉइस से बोला हुआ टेक्स्ट पेस्ट करें...")
 
         if user_input or format_file or case_file:
             format_content, _ = read_uploaded_file_content(format_file) if format_file else ("", None)

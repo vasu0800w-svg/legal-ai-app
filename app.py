@@ -182,10 +182,15 @@ if "current_session" not in st.session_state:
 if "nav_menu" not in st.session_state:
     st.session_state.nav_menu = "💬 Case Studio"
 
+# ⏱️ FREE TRIAL SESSION TIMER (1 Hour Daily Limit for Free Users)
+if "login_time" not in st.session_state:
+    st.session_state.login_time = datetime.datetime.now()
+
 def login_user(email, password):
     try:
         res = supabase.auth.sign_in_with_password({"email": email, "password": password})
         st.session_state.user = res.user
+        st.session_state.login_time = datetime.datetime.now()
         st.success("✅ Login successful!")
         st.rerun()
     except Exception as e:
@@ -204,6 +209,7 @@ def signup_user(email, password, full_name, phone):
             }
         })
         st.session_state.user = res.user
+        st.session_state.login_time = datetime.datetime.now()
         st.success("✅ Account created successfully!")
         st.rerun()
     except Exception as e:
@@ -286,6 +292,23 @@ except Exception:
     pass
 
 user_initials = "".join([part[0].upper() for part in display_user_name.split()[:2]]) if display_user_name else "VT"
+
+# ⏱️ FREE TRIAL CHECK: Check if 1 hour has elapsed (Set is_pro = False for free users by default)
+is_pro_user = False # Can be linked to database later when payment gateway is added
+elapsed_time = (datetime.datetime.now() - st.session_state.login_time).total_seconds()
+MAX_FREE_SECONDS = 3600 # 1 Hour
+
+if not is_pro_user and elapsed_time > MAX_FREE_SECONDS:
+    st.markdown("""
+    <div style="text-align: center; padding: 100px 20px;">
+        <h1 style="color: #a855f7;">⏳ Free Daily Trial Expired</h1>
+        <p style="color: #9ca3af; font-size: 16px;">Your 1-hour free daily trial for Nyaya Assist AI has ended.</p>
+        <p style="color: #ffffff; font-size: 15px;">Upgrade to Pro to unlock unlimited 24/7 access and all advanced legal drafting tools.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("🚀 Upgrade to Pro Now", use_container_width=True):
+        st.info("Pro Plan subscription gateway will be integrated soon!")
+    st.stop()
 
 def save_chat_to_supabase(session_name, role, content):
     if supabase:
@@ -475,7 +498,7 @@ with st.sidebar:
 def show_profile_dialog():
     st.markdown(f"### Advocate: **{display_user_name}**")
     st.markdown(f"📧 **Email:** `{current_user_email}`")
-    st.markdown("👑 **Subscription Status:** `Free Tier` *(Upgrade to Pro for unlimited access)*")
+    st.markdown("👑 **Subscription Status:** `Free Tier` *(1-Hour Daily Trial Active)*")
     
     st.markdown("---")
     st.markdown("#### 🔒 Change Password")

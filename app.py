@@ -1,89 +1,121 @@
 import streamlit as st
 import google.generativeai as genai
 import streamlit.components.v1 as components
-import sqlite3
 import datetime
-import urllib.parse
 import io
 import os
-import json
 from docx import Document
 from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from supabase import create_client, Client
 
-st.set_page_config(page_title="NyayaAI Studio", page_icon="⚖️", layout="centered")
+st.set_page_config(page_title="NyayaAI Studio Pro", page_icon="⚖️", layout="centered")
 
 TEMPLATES_FOLDER = "master_templates"
 if not os.path.exists(TEMPLATES_FOLDER):
     os.makedirs(TEMPLATES_FOLDER)
 
-# 🗄️ Database Setup
-def init_db():
-    conn = sqlite3.connect("nyaya_chats.db", check_same_thread=False)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS chats 
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT, session_name TEXT, role TEXT, content TEXT, timestamp TEXT)''')
-    conn.commit()
-    conn.close()
+# 🔑 Fetch Secrets
+default_api_key = st.secrets.get("GEMINI_API_KEY", "")
+supabase_url = st.secrets.get("SUPABASE_URL", "")
+supabase_key = st.secrets.get("SUPABASE_KEY", "")
 
-init_db()
-
-def get_sessions():
-    conn = sqlite3.connect("nyaya_chats.db", check_same_thread=False)
-    c = conn.cursor()
-    c.execute("SELECT DISTINCT session_name FROM chats ORDER BY id DESC")
-    sessions = [row[0] for row in c.fetchall()]
-    conn.close()
-    return sessions
-
-def load_chat_history(session_name):
-    conn = sqlite3.connect("nyaya_chats.db", check_same_thread=False)
-    c = conn.cursor()
-    c.execute("SELECT role, content FROM chats WHERE session_name = ? ORDER BY id ASC", (session_name,))
-    rows = c.fetchall()
-    conn.close()
-    return [{"role": row[0], "content": row[1]} for row in rows]
-
-def save_message(session_name, role, content):
-    conn = sqlite3.connect("nyaya_chats.db", check_same_thread=False)
-    c = conn.cursor()
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    c.execute("INSERT INTO chats (session_name, role, content, timestamp) VALUES (?, ?, ?, ?)", (session_name, role, content, timestamp))
-    conn.commit()
-    conn.close()
-
-def search_chats(keyword):
-    conn = sqlite3.connect("nyaya_chats.db", check_same_thread=False)
-    c = conn.cursor()
-    c.execute("SELECT DISTINCT session_name, content FROM chats WHERE content LIKE ?", ('%' + keyword + '%',))
-    results = c.fetchall()
-    conn.close()
-    return results
-
-def export_all_data():
-    conn = sqlite3.connect("nyaya_chats.db", check_same_thread=False)
-    c = conn.cursor()
-    c.execute("SELECT session_name, role, content, timestamp FROM chats ORDER BY id ASC")
-    rows = c.fetchall()
-    conn.close()
-    data = []
-    for r in rows:
-        data.append({"session_name": r[0], "role": r[1], "content": r[2], "timestamp": r[3]})
-    return json.dumps(data, ensure_ascii=False, indent=2)
-
-def import_all_data(json_str):
+# 🗄️ Supabase Initialization
+supabase: Client = None
+if supabase_url and supabase_key:
     try:
-        data = json.loads(json_str)
-        conn = sqlite3.connect("nyaya_chats.db", check_same_thread=False)
-        c = conn.cursor()
-        for item in data:
-            c.execute("INSERT INTO chats (session_name, role, content, timestamp) VALUES (?, ?, ?, ?)",
-                      (item["session_name"], item["role"], item["content"], item.get("timestamp", "")))
-        conn.commit()
-        conn.close()
-        return True
-    except Exception:
-        return False
+        supabase = create_client(supabase_url, supabase_key)
+    except Exception as e:
+        st.error(f"Supabase connection error: {e}")
+
+# 🔐 LOGIN & USER SYSTEM
+if "user" not in st.session_state:
+    st.session_state.user = None
+
+def login_user(email, password):
+    try:
+        res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+        st.session_state.user = res.user
+        st.success("✅ Login successful!")
+        st.rerun()
+    except Exception as e:
+        st.error(f"Login failed: {e}")
+
+def signup_user(email, password):
+    try:
+        res = supabase.auth.sign_up({"email": email, "password": password})
+        st.session_state.user = res.user
+        st.success("✅ Account created successfully!")
+        st.rerun()
+    except Exception as e:
+        st.error(f"Signup failed: {e}")
+
+if not st.session_state.user:
+    st.title("⚖️ NyayaAI Studio Pro")
+    st.subheader("Login / Signup to Access Legal AI")
+    
+    auth_mode = st.radio("Choose Action", ["Login", "Sign Up"])
+    email = st.text_input("Email Address")
+    password = st.text_input("Password", type="password")
+    
+    if auth_mode == "Login":
+        if st.button("🔐 Log In"):
+            if email and password and supabase:
+                login_user(email, password)
+            else:
+                st.warning("Please enter Email & Password.")
+    else:
+        if st.button("📝 Sign Up"):
+            if email and password and supabase:
+                signup_user(email, password)
+            else:
+                st.warning("Please enter Email & Password.")
+    st.stop()
+
+# ----------------- LOGGED IN APPLICATION AREA -----------------
+current_user_email = st.session_state.user.email
+
+st.sidebar.title("⚖️ NyayaAI Pro")
+st.sidebar.write(f"👤 **User:** `{current_user_email}`")
+if st.sidebar.button("🚪 Logout"):
+    st.session_state.user = None
+    st.rerun()
+
+menu = st.sidebar.radio("Navigation", ["💬 Case Studio", "📂 Case History", "⚙️ Settings"])
+
+api_key = st.sidebar.text_input("Enter Gemini API Key", value=default_api_key, type="password")
+
+# Database Helper Functions
+def save_chat_to_supabase(session_name, role, content):
+    if supabase:
+        try:
+            supabase.table("chats").insert({
+                "user_email": current_user_email,
+                "session_name": session_name,
+                "role": role,
+                "content": content
+            }).execute()
+        except Exception as e:
+            st.error(f"Error saving chat: {e}")
+
+def get_supabase_sessions():
+    if supabase:
+        try:
+            res = supabase.table("chats").select("session_name").eq("user_email", current_user_email).execute()
+            sessions = list(set([row["session_name"] for row in res.data]))
+            return sorted(sessions, reverse=True)
+        except Exception:
+            return []
+    return []
+
+def get_supabase_chat_history(session_name):
+    if supabase:
+        try:
+            res = supabase.table("chats").select("role, content").eq("user_email", current_user_email).eq("session_name", session_name).order("id").execute()
+            return res.data
+        except Exception:
+            return []
+    return []
 
 def load_all_local_templates():
     template_data = ""
@@ -150,15 +182,6 @@ def create_court_ready_docx(text):
     bio.seek(0)
     return bio
 
-st.sidebar.title("⚖️ NyayaAI Control Panel")
-menu = st.sidebar.radio("Navigation", ["💬 Case Studio", "📂 Case History & Search", "⚙️ Settings"])
-
-default_api_key = ""
-if "GEMINI_API_KEY" in st.secrets:
-    default_api_key = st.secrets["GEMINI_API_KEY"]
-
-api_key = st.sidebar.text_input("Enter Gemini API Key", value=default_api_key, type="password")
-
 if api_key:
     genai.configure(api_key=api_key)
     
@@ -180,10 +203,6 @@ if api_key:
     - Advocate Name: {st.session_state.advocate_name if st.session_state.advocate_name else "[Advocate Name]"}
     - Court Heading: {st.session_state.default_court if st.session_state.default_court else "[Court Name]"}
     
-    CRITICAL DRAFTING RULES:
-    1. MULTI-TEMPLATE SELECTION: Match requested doc with Database Master Templates.
-    2. ACCURACY & FLEXIBILITY: Write detailed numbered paragraphs based on case facts.
-    
     PERMANENT MASTER TEMPLATES IN DATABASE:
     {local_templates_text if local_templates_text else "Default Standard Court Layout (High Court / District Court Format)"}
     
@@ -201,13 +220,13 @@ if api_key:
     )
 
     if menu == "⚙️ Settings":
-        st.header("⚙️ Application Settings & Format Database")
+        st.header("⚙️ Application Settings")
         
-        st.subheader("👤 Profile & Court Information")
+        st.subheader("👤 Profile Information")
         adv_name_input = st.text_input("Advocate Name:", value=st.session_state.advocate_name)
         court_input = st.text_input("Default Court Name:", value=st.session_state.default_court)
         
-        selected_lang = st.selectbox("Preferred AI Language & Style", [
+        selected_lang = st.selectbox("Preferred AI Language", [
             "Pure Hindi (Formal Legal)",
             "Hinglish / Bilingual (Hindi & English)",
             "Pure English (Professional Legal)"
@@ -218,77 +237,23 @@ if api_key:
             st.session_state.default_court = court_input
             st.session_state.app_lang = selected_lang
             st.success("Settings updated!")
-            
-        st.markdown("---")
-        st.subheader("📁 Bulk Upload Court Formats to AI Database")
-        master_files = st.file_uploader("Upload Master Legal Templates (.docx / .txt)", type=["docx", "txt"], accept_multiple_files=True, key="settings_bulk_uploader")
-        
-        if st.button("💾 Save Templates to AI Database"):
-            if master_files:
-                for mf in master_files:
-                    save_path = os.path.join(TEMPLATES_FOLDER, mf.name)
-                    with open(save_path, "wb") as f:
-                        f.write(mf.read())
-                st.success("✅ Formats saved to database!")
-                st.rerun()
 
-        st.markdown("---")
-        if os.path.exists(TEMPLATES_FOLDER):
-            files = os.listdir(TEMPLATES_FOLDER)
-            if files:
-                for f in files:
-                    col_f1, col_f2 = st.columns([4, 1])
-                    with col_f1:
-                        st.code(f"📄 {f}")
-                    with col_f2:
-                        if st.button("❌ Delete", key=f"del_{f}"):
-                            os.remove(os.path.join(TEMPLATES_FOLDER, f))
-                            st.rerun()
-
-    elif menu == "📂 Case History & Search":
-        st.header("📂 Past Case History & Backup Studio")
-        
-        col_bk1, col_bk2 = st.columns(2)
-        with col_bk1:
-            st.subheader("📥 Export / Backup History")
-            backup_data = export_all_data()
-            st.download_button(
-                label="⬇️ Download History Backup (.json)",
-                data=backup_data,
-                file_name=f"NyayaAI_Backup_{datetime.datetime.now().strftime('%Y%m%d')}.json",
-                mime="application/json"
-            )
-        
-        with col_bk2:
-            st.subheader("📤 Import Backup File")
-            uploaded_backup = st.file_uploader("Upload Backup (.json)", type=["json"], key="history_importer")
-            if uploaded_backup is not None:
-                if st.button("🔄 Restore History"):
-                    content = uploaded_backup.read().decode("utf-8")
-                    if import_all_data(content):
-                        st.success("✅ History Restored Successfully!")
-                        st.rerun()
-                    else:
-                        st.error("❌ Failed to restore history.")
-
-        st.markdown("---")
-        st.subheader("📜 All Recorded Cases")
-        sessions = get_sessions()
+    elif menu == "📂 Case History":
+        st.header("📂 Your Cloud Saved Case History")
+        sessions = get_supabase_sessions()
         if sessions:
             for s in sessions:
                 with st.expander(f"📁 Case: {s}"):
-                    chats = load_chat_history(s)
+                    chats = get_supabase_chat_history(s)
                     for c in chats:
                         st.markdown(f"**{c['role'].capitalize()}:** {c['content']}")
         else:
-            st.info("No past cases found in history.")
+            st.info("No saved cases found.")
 
     elif menu == "💬 Case Studio":
         st.title("⚖️ NyayaAI: Precision Legal Studio")
         
-        sessions = get_sessions()
-        
-        # 🎯 FORCE NEW SESSION ON FRESH OPEN
+        sessions = get_supabase_sessions()
         if "current_session" not in st.session_state:
             st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
 
@@ -299,13 +264,12 @@ if api_key:
             st.session_state.current_session = current_chat_name
         with col2:
             if st.button("➕ New Case"):
-                new_name = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
-                st.session_state.current_session = new_name
+                st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
                 st.rerun()
 
         st.markdown("---")
 
-        messages = load_chat_history(current_chat_name)
+        messages = get_supabase_chat_history(current_chat_name)
 
         if not messages:
             st.info("✨ **New Case Initialized.** Enter evidence or ask questions below to start drafting.")
@@ -316,98 +280,22 @@ if api_key:
                 
                 upper_content = message["content"].upper()
                 if message["role"] == "assistant" and "START_DRAFT" in upper_content:
-                    col_a, col_b = st.columns([1, 1])
-                    
-                    with col_a:
-                        tts_html = f"""
-                        <button id="tts-{idx}" style="padding: 5px 10px; font-size: 11px; border-radius: 4px; border: none; background-color: #4A90E2; color: white; cursor: pointer;">🔊 Listen</button>
-                        <script>
-                            document.getElementById('tts-{idx}').onclick = () => {{
-                                window.speechSynthesis.cancel();
-                                const u = new SpeechSynthesisUtterance(`{message["content"].replace('`', '\\`').replace('$', '\\$')}`);
-                                u.lang = 'hi-IN'; window.speechSynthesis.speak(u);
-                            }};
-                        </script>
-                        """
-                        components.html(tts_html, height=30)
-                    
-                    with col_b:
-                        docx_data = create_court_ready_docx(message["content"])
-                        st.download_button(
-                            label="📥 Download Court Word Doc",
-                            data=docx_data,
-                            file_name=f"Court_Draft_{idx}.docx",
-                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                            key=f"docx_{idx}"
-                        )
+                    docx_data = create_court_ready_docx(message["content"])
+                    st.download_button(
+                        label="📥 Download Court Word Doc",
+                        data=docx_data,
+                        file_name=f"Court_Draft_{idx}.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        key=f"docx_{idx}"
+                    )
 
         st.markdown("---")
-
-        if "uploader_key" not in st.session_state:
-            st.session_state.uploader_key = 0
-
-        col_opt1, col_opt2 = st.columns(2)
-        
-        with col_opt1:
-            st.markdown("### 📁 1. Case Evidence / Facts")
-            evidence_files = st.file_uploader("Upload Evidence", type=["pdf", "txt", "png", "jpg", "jpeg", "mp3", "wav", "m4a"], accept_multiple_files=True, key=f"evidence_uploader_{st.session_state.uploader_key}")
-
-        with col_opt2:
-            st.markdown("### 📜 2. Quick New Format")
-            format_file = st.file_uploader("Upload Format", type=["docx", "txt"], accept_multiple_files=False, key=f"format_uploader_{st.session_state.uploader_key}")
-
-        st.write("🎙️ **Voice Dictation:**")
-        voice_code = """
-        <button id="speech-btn" style="padding: 6px 12px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; width: 120px;">
-            🎙️ Speak
-        </button>
-        <script>
-            const btn = document.getElementById('speech-btn');
-            let rec = null; let isListening = false;
-            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-                rec = new SR(); rec.continuous = false; rec.interimResults = false; rec.lang = 'hi-IN';
-                
-                rec.onstart = () => { isListening = true; btn.innerText = "🛑 Stop"; btn.style.backgroundColor = "#dc3545"; };
-                rec.onresult = (e) => {
-                    const text = e.results[0][0].transcript;
-                    const inputEl = window.parent.document.querySelector('textarea[data-testid="stChatInputTextArea"]');
-                    if(inputEl) {
-                        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
-                        nativeInputValueSetter.call(inputEl, (inputEl.value + " " + text).trim());
-                        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
-                };
-                rec.onend = () => { isListening = false; btn.innerText = "🎙️ Speak"; btn.style.backgroundColor = "#28a745"; };
-            }
-            btn.onclick = () => { if(!isListening) { rec.start(); } else { rec.stop(); } };
-        </script>
-        """
-        components.html(voice_code, height=40)
 
         user_input = st.chat_input("यहाँ केस की बात लिखें...")
 
         if user_input:
-            if format_file is not None:
-                save_path = os.path.join(TEMPLATES_FOLDER, format_file.name)
-                with open(save_path, "wb") as f:
-                    f.write(format_file.read())
-                st.toast("✅ Format Saved!", icon="📜")
-
-            prompt_parts = []
-            
-            if evidence_files:
-                for ef in evidence_files:
-                    b_data = ef.read()
-                    if ef.type == "text/plain":
-                        prompt_parts.append(f"NEW CASE EVIDENCE ({ef.name}):\n{b_data.decode('utf-8')}")
-                    else:
-                        prompt_parts.append({"mime_type": ef.type, "data": b_data})
-
-            prompt_parts.append(user_input)
-
-            save_message(current_chat_name, "user", user_input)
-            st.session_state.uploader_key += 1
+            prompt_parts = [user_input]
+            save_chat_to_supabase(current_chat_name, "user", user_input)
 
             with st.chat_message("user"):
                 st.markdown(user_input)
@@ -418,7 +306,6 @@ if api_key:
                 
                 try:
                     response = model.generate_content(prompt_parts, stream=True)
-                        
                     for chunk in response:
                         full_response += chunk.text
                         message_placeholder.markdown(full_response + "▌")
@@ -427,7 +314,7 @@ if api_key:
                     st.error(f"Error: {str(e)}")
                 
             if full_response:
-                save_message(current_chat_name, "assistant", full_response)
+                save_chat_to_supabase(current_chat_name, "assistant", full_response)
                 st.rerun()
 else:
-    st.info("👈 Please enter your Gemini API Key in the sidebar or configure GEMINI_API_KEY in Streamlit Secrets.")
+    st.info("👈 Gemini API Key missing.")

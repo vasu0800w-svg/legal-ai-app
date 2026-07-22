@@ -175,8 +175,8 @@ if not st.session_state.user:
             full_name = st.text_input("Full Name", placeholder="Adv. Rajesh Sharma", key="signup_name")
             email = st.text_input("Email", placeholder="name@example.com", key="signup_email")
             phone = st.text_input("Phone Number (Optional)", placeholder="+91 98765 43210", key="signup_phone")
-            password = st.text_input("Password", type="password", placeholder="••••••••", key="signup_cpass")
-            confirm_pass = st.text_input("Confirm Password", type="password", placeholder="••••••••", key="signup_cpass")
+            password = st.text_input("Password", type="password", placeholder="••••••••", key="signup_pass")
+            confirm_pass = st.text_input("Confirm Password", type="password", placeholder="••••••••", key="signup_cpass_unique")
             
             agree = st.checkbox("I agree to the Terms of Service and Privacy Policy")
             
@@ -563,7 +563,6 @@ if api_key:
                 message_placeholder = st.empty()
                 full_response = ""
                 try:
-                    # Input payload (supports image if present)
                     prompt_payload = [combined_prompt]
                     if case_image:
                         prompt_payload.append(case_image)

@@ -8,8 +8,16 @@ from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from supabase import create_client, Client
 from PIL import Image
+import extra_streamlit_components as stx
 
 st.set_page_config(page_title="Nyaya Assist AI", page_icon="⚖️", layout="wide")
+
+# 🍪 Cookie Manager for Auto-login Persistence
+@st.cache_resource(experimental_allow_widgets=True)
+def get_cookie_manager():
+    return stx.CookieManager()
+
+cookie_manager = get_cookie_manager()
 
 TEMPLATES_FOLDER = "master_templates"
 if not os.path.exists(TEMPLATES_FOLDER):
@@ -72,7 +80,6 @@ st.markdown("""
         border-radius: 10px !important;
     }
 
-    /* 🎨 ULTRA-CLEAN MODERN SIDEBAR RADIO BUTTONS STYLING */
     div.stRadio > div {
         gap: 6px !important;
     }
@@ -97,7 +104,6 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* 🎯 PERFECT CIRCULAR AVATAR BUTTON FIX FOR PROFILE */
     div[data-testid="column"]:nth-child(3) .stButton > button {
         border-radius: 50% !important;
         width: 42px !important;
@@ -181,16 +187,24 @@ if "current_session" not in st.session_state:
     st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
 if "nav_menu" not in st.session_state:
     st.session_state.nav_menu = "💬 Case Studio"
-
-# ⏱️ FREE TRIAL SESSION TIMER (1 Hour Daily Limit for Free Users)
 if "login_time" not in st.session_state:
     st.session_state.login_time = datetime.datetime.now()
+
+# 🔄 AUTO-LOGIN CHECK FROM COOKIE
+saved_email = cookie_manager.get("user_email")
+if saved_email and not st.session_state.user:
+    class DummyUser:
+        def __init__(self, email):
+            self.email = email
+            self.user_metadata = {"full_name": email.split('@')[0].capitalize()}
+    st.session_state.user = DummyUser(saved_email)
 
 def login_user(email, password):
     try:
         res = supabase.auth.sign_in_with_password({"email": email, "password": password})
         st.session_state.user = res.user
         st.session_state.login_time = datetime.datetime.now()
+        cookie_manager.set("user_email", email, expires_at=datetime.datetime.now() + datetime.timedelta(days=30))
         st.success("✅ Login successful!")
         st.rerun()
     except Exception as e:
@@ -210,6 +224,7 @@ def signup_user(email, password, full_name, phone):
         })
         st.session_state.user = res.user
         st.session_state.login_time = datetime.datetime.now()
+        cookie_manager.set("user_email", email, expires_at=datetime.datetime.now() + datetime.timedelta(days=30))
         st.success("✅ Account created successfully!")
         st.rerun()
     except Exception as e:
@@ -293,8 +308,8 @@ except Exception:
 
 user_initials = "".join([part[0].upper() for part in display_user_name.split()[:2]]) if display_user_name else "VT"
 
-# ⏱️ FREE TRIAL CHECK: Check if 1 hour has elapsed (Set is_pro = False for free users by default)
-is_pro_user = False # Can be linked to database later when payment gateway is added
+# ⏱️ FREE TRIAL CHECK: Check if 1 hour has elapsed
+is_pro_user = False
 elapsed_time = (datetime.datetime.now() - st.session_state.login_time).total_seconds()
 MAX_FREE_SECONDS = 3600 # 1 Hour
 
@@ -489,6 +504,7 @@ with st.sidebar:
 
     st.markdown("<br>"*2, unsafe_allow_html=True)
     if st.button("🚪 Logout", use_container_width=True):
+        cookie_manager.delete("user_email")
         st.session_state.user = None
         st.session_state.auth_mode = "login"
         st.rerun()

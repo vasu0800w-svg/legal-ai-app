@@ -110,25 +110,13 @@ def signup_user(email, password, full_name, phone):
         st.error(f"Signup failed: {e}")
 
 def login_with_google():
-    try:
-        # Proper OAuth URL Generation
-        res = supabase.auth.get_oauth_sign_in_url({
-            "provider": "google",
-            "options": {
-                "redirect_to": "https://nyaya-ai-studio.streamlit.app"
-            }
-        })
-        if res and hasattr(res, 'url') and res.url:
-            st.markdown(f'<meta http-equiv="refresh" content="0;url={res.url}">', unsafe_allow_html=True)
-            st.info("Redirecting to Google Sign-In...")
-        else:
-            # Fallback URL Construction
-            google_url = f"{supabase_url}/auth/v1/authorize?provider=google&redirect_to=https://nyaya-ai-studio.streamlit.app"
-            st.markdown(f'<meta http-equiv="refresh" content="0;url={google_url}">', unsafe_allow_html=True)
-    except Exception as e:
-        # Fallback if method fails
-        google_url = f"{supabase_url}/auth/v1/authorize?provider=google&redirect_to=https://nyaya-ai-studio.streamlit.app"
-        st.markdown(f'<meta http-equiv="refresh" content="0;url={google_url}">', unsafe_allow_html=True)
+    if supabase_url and supabase_key:
+        # Pass both apikey and redirect parameters directly
+        redirect_app_url = "https://nyaya-ai-studio.streamlit.app"
+        google_auth_url = f"{supabase_url}/auth/v1/authorize?provider=google&redirect_to={redirect_app_url}&apikey={supabase_key}"
+        st.markdown(f'<meta http-equiv="refresh" content="0;url={google_auth_url}">', unsafe_allow_html=True)
+    else:
+        st.error("Supabase URL or Key missing in Secrets.")
 
 # ----------------- LOGIN / SIGNUP SCREEN -----------------
 if not st.session_state.user:

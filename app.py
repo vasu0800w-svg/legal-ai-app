@@ -15,7 +15,7 @@ TEMPLATES_FOLDER = "master_templates"
 if not os.path.exists(TEMPLATES_FOLDER):
     os.makedirs(TEMPLATES_FOLDER)
 
-# 🔑 Fetch Secrets (Hidden from UI)
+# 🔑 Fetch Secrets
 default_api_key = st.secrets.get("GEMINI_API_KEY", "")
 supabase_url = st.secrets.get("SUPABASE_URL", "")
 supabase_key = st.secrets.get("SUPABASE_KEY", "")
@@ -28,10 +28,10 @@ if supabase_url and supabase_key:
     except Exception as e:
         st.error(f"Supabase connection error: {e}")
 
-# 📱 CLEAN UI & HIDE STREAMLIT DEFAULTS CSS
+# 🔐 PREMIUM MODERN DARK CSS STYLING
 st.markdown("""
 <style>
-    /* Hide Streamlit Header, Footer & Deploy/Fork Buttons */
+    /* Hide Streamlit Default Chrome */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
@@ -42,6 +42,8 @@ st.markdown("""
         color: #f3f4f6 !important;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
+    
+    /* Sidebar Styling */
     section[data-testid="stSidebar"] {
         background-color: #08090d !important;
         border-right: 1px solid #161821 !important;
@@ -97,7 +99,7 @@ st.markdown("""
         padding: 10px 10px 5px 10px;
     }
     .welcome-title {
-        font-size: 28px;
+        font-size: 30px;
         font-weight: 700;
         color: #ffffff;
         margin-bottom: 6px;
@@ -112,7 +114,7 @@ st.markdown("""
         background-color: #0e1017;
         border: 1px solid #1f222e;
         border-radius: 16px;
-        padding: 16px;
+        padding: 18px;
         margin: 0 auto 15px auto;
         max-width: 800px;
     }
@@ -121,7 +123,7 @@ st.markdown("""
         background-color: #0e1017;
         border: 1px solid #1f222e;
         border-radius: 12px;
-        padding: 10px;
+        padding: 12px;
         margin-bottom: 8px;
     }
 
@@ -192,7 +194,6 @@ def signup_user(email, password, full_name, phone):
 # ----------------- LOGIN / SIGNUP SCREEN -----------------
 if not st.session_state.user:
     st.markdown("<br>", unsafe_allow_html=True)
-    
     col_auth1, col_auth2, col_auth3 = st.columns([1, 4, 1])
     with col_auth2:
         if st.session_state.auth_mode == "login":
@@ -220,7 +221,6 @@ if not st.session_state.user:
             if st.button("Don't have an account? Sign up", key="switch_to_signup", use_container_width=True):
                 st.session_state.auth_mode = "signup"
                 st.rerun()
-
         else:
             st.markdown("""
             <div style="text-align: left;">
@@ -251,10 +251,9 @@ if not st.session_state.user:
             if st.button("Already have an account? Login", key="switch_to_login", use_container_width=True):
                 st.session_state.auth_mode = "login"
                 st.rerun()
-
     st.stop()
 
-# ----------------- LOGGED IN APPLICATION DASHBOARD -----------------
+# ----------------- LOGGED IN DASHBOARD -----------------
 current_user_email = st.session_state.user.email
 display_user_name = current_user_email.split('@')[0].capitalize()
 
@@ -306,27 +305,6 @@ def delete_supabase_session(session_name):
             st.rerun()
         except Exception as e:
             st.error(f"Error deleting chat: {e}")
-
-def load_all_local_templates():
-    template_data = ""
-    if os.path.exists(TEMPLATES_FOLDER):
-        files = os.listdir(TEMPLATES_FOLDER)
-        for file in sorted(files):
-            file_path = os.path.join(TEMPLATES_FOLDER, file)
-            if file.endswith(".txt"):
-                try:
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        template_data += f"\n\n--- MASTER TEMPLATE DATABASE: {file} ---\n" + f.read()
-                except Exception:
-                    pass
-            elif file.endswith(".docx"):
-                try:
-                    doc_read = Document(file_path)
-                    doc_text = '\n'.join([p.text for p in doc_read.paragraphs])
-                    template_data += f"\n\n--- MASTER TEMPLATE DATABASE: {file} ---\n" + doc_text
-                except Exception:
-                    pass
-    return template_data
 
 def read_uploaded_file_content(uploaded_file):
     if uploaded_file is None:
@@ -397,7 +375,7 @@ def create_court_ready_docx(text):
     bio.seek(0)
     return bio
 
-# ----------------- 🎯 PREMIUM SIDEBAR NAVIGATION -----------------
+# ----------------- 🎯 SIDEBAR NAVIGATION (RESTORED) -----------------
 nav_options = ["💬 Case Studio", "📖 Library", "📁 My Cases", "⚙️ Settings", "📂 Chat History"]
 
 with st.sidebar:
@@ -433,8 +411,8 @@ with st.sidebar:
 
     sidebar_sessions = get_supabase_sessions()
     if sidebar_sessions:
-        for sess in sidebar_sessions[:5]:
-            if st.button(f"💬 {sess[:18]}...", key=f"sbar_sess_{sess}", use_container_width=True):
+        for sess in sidebar_sessions[:10]:
+            if st.button(f"💬 {sess[:22]}...", key=f"sbar_sess_{sess}", use_container_width=True):
                 st.session_state.current_session = sess
                 st.session_state.nav_menu = "💬 Case Studio"
                 st.rerun()
@@ -477,11 +455,11 @@ def show_profile_dialog():
         st.info("Pro Plan subscription gateway will be integrated soon!")
 
 # ----------------- TOP APP BAR -----------------
-col_top_h1, col_top_h2, col_top_h3 = st.columns([4, 1, 1])
+col_top_h1, col_top_h2, col_top_h3 = st.columns([5, 1, 1])
 with col_top_h1:
-    st.markdown("#### Nyaya Assist <span style='color:#a855f7;'>AI</span>", unsafe_allow_html=True)
+    st.markdown("### Nyaya Assist <span style='color:#a855f7;'>AI</span>", unsafe_allow_html=True)
 with col_top_h2:
-    st.markdown("<div style='text-align: right; padding-top: 6px; color: #9ca3af; font-size: 14px;'>🔔</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: right; padding-top: 10px; color: #9ca3af; font-size: 16px;'>🔔</div>", unsafe_allow_html=True)
 with col_top_h3:
     if st.button(user_initials, key="btn_open_profile_modal"):
         show_profile_dialog()
@@ -527,7 +505,7 @@ if default_api_key:
     )
 
     if menu == "📖 Library":
-        st.markdown("## 📖 Legal Library")
+        st.markdown("## 📖 Legal Library & Judgment Search")
         search_query = st.text_input("🔍 Search Library...", placeholder="e.g. Section 498A...")
         
         st.markdown("### 📤 Upload Files")
@@ -659,7 +637,7 @@ if default_api_key:
                             key=f"docx_{idx}"
                         )
 
-        # ----------------- 🎯 MOBILE RESPONSIVE INPUT DECK WITH VOICE -----------------
+        # ----------------- 🎯 INPUT DECK WITH VOICE -----------------
         st.markdown("---")
         col_deck1, col_deck2, col_deck3 = st.columns(3)
 
@@ -732,7 +710,7 @@ if default_api_key:
             """
             st.components.v1.html(voice_html, height=75)
 
-        # 🖼️ VISUAL ATTACHMENT PREVIEW CHIP
+        # 🖼️ ATTACHED PREVIEW
         if format_file or case_file:
             st.markdown("##### 📎 Attached:")
             if format_file:

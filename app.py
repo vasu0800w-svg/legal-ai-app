@@ -15,10 +15,12 @@ TEMPLATES_FOLDER = "master_templates"
 if not os.path.exists(TEMPLATES_FOLDER):
     os.makedirs(TEMPLATES_FOLDER)
 
+# 🔑 Fetch Secrets
 default_api_key = st.secrets.get("GEMINI_API_KEY", "")
 supabase_url = st.secrets.get("SUPABASE_URL", "")
 supabase_key = st.secrets.get("SUPABASE_KEY", "")
 
+# 🗄️ Supabase Initialization
 supabase: Client = None
 if supabase_url and supabase_key:
     try:
@@ -26,6 +28,7 @@ if supabase_url and supabase_key:
     except Exception as e:
         st.error(f"Supabase connection error: {e}")
 
+# 🔐 PREMIUM MODERN DARK CSS STYLING
 st.markdown("""
 <style>
     #MainMenu {visibility: hidden;}
@@ -38,17 +41,20 @@ st.markdown("""
         color: #f3f4f6 !important;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
+    
     section[data-testid="stSidebar"] {
         background-color: #08090d !important;
         border-right: 1px solid #161821 !important;
         padding-top: 10px;
     }
+    
     .stTextInput > div > div > input, .stSelectbox > div > div, .stTextArea > div > div > textarea {
         background-color: #0e1017 !important;
         color: #ffffff !important;
         border: 1px solid #1f222e !important;
         border-radius: 12px !important;
     }
+    
     .stButton > button {
         background: linear-gradient(135deg, #7c3aed, #6366f1) !important;
         color: white !important;
@@ -59,6 +65,7 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3) !important;
         width: 100%;
     }
+    
     .stDownloadButton > button {
         background: #1e1b4b !important;
         color: #c084fc !important;
@@ -66,6 +73,7 @@ st.markdown("""
         border-radius: 10px !important;
         width: 100%;
     }
+
     .pro-banner {
         background: linear-gradient(135deg, #1e1b4b, #0f172a);
         border: 1px solid #3b0764;
@@ -73,6 +81,7 @@ st.markdown("""
         padding: 12px;
         margin-bottom: 20px;
     }
+
     .welcome-hero {
         text-align: center;
         padding: 10px;
@@ -85,7 +94,9 @@ st.markdown("""
     .welcome-subtitle {
         color: #9ca3af;
         font-size: 14px;
+        margin-bottom: 20px;
     }
+    
     .case-studio-banner {
         background-color: #0e1017;
         border: 1px solid #1f222e;
@@ -93,6 +104,7 @@ st.markdown("""
         padding: 16px;
         margin: 0 auto 15px auto;
     }
+
     .action-card {
         background-color: #0e1017;
         border: 1px solid #1f222e;
@@ -100,6 +112,7 @@ st.markdown("""
         padding: 12px;
         margin-bottom: 8px;
     }
+
     .attachment-chip {
         background-color: #1e1b4b;
         border: 1px solid #7c3aed;
@@ -242,42 +255,87 @@ def create_court_ready_docx(text):
 
 nav_options = ["💬 Case Studio", "📖 Library", "📁 My Cases", "⚙️ Settings", "📂 Chat History"]
 
+# 🎯 SIDEBAR NAVIGATION RESTORED
 with st.sidebar:
-    st.markdown("### ⚖️ Nyaya Assist AI")
-    if st.button("➕ New Case", use_container_width=True):
+    st.markdown("""
+    <div style="text-align: center; margin-bottom: 15px;">
+        <h3>⚖️ Nyaya Assist AI</h3>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="pro-banner">
+        <div style="font-weight: 700; font-size: 12px; color: #ffffff;">👑 Upgrade to Pro</div>
+        <div style="font-size: 10px; color: #9ca3af;">Unlock advanced features</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if st.button("➕ New Case", key="sb_new", use_container_width=True):
         st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
         st.session_state.nav_menu = "💬 Case Studio"
         st.rerun()
-    
+
     curr_idx = nav_options.index(st.session_state.nav_menu) if st.session_state.nav_menu in nav_options else 0
     menu = st.radio("Menu", nav_options, index=curr_idx, label_visibility="collapsed")
     st.session_state.nav_menu = menu
 
     st.markdown("---")
-    st.markdown("**Chat History**")
+    st.markdown("<div style='font-size: 11px; font-weight:700; color:#8e92a4; text-transform:uppercase;'>Chat History</div>", unsafe_allow_html=True)
     for s in get_supabase_sessions()[:10]:
-        if st.button(f"💬 {s[:20]}", key=f"sb_{s}", use_container_width=True):
+        if st.button(f"💬 {s[:20]}...", key=f"sbar_{s}", use_container_width=True):
             st.session_state.current_session = s
             st.session_state.nav_menu = "💬 Case Studio"
             st.rerun()
-            
+
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🚪 Logout", use_container_width=True):
         if "logged_in_user" in st.query_params: del st.query_params["logged_in_user"]
         st.session_state.user = None
         st.rerun()
 
+# TOP APP BAR
 col1, col2, col3 = st.columns([5, 1, 1])
 with col1: st.markdown("### Nyaya Assist <span style='color:#a855f7;'>AI</span>", unsafe_allow_html=True)
 with col3: 
     if st.button(user_initials, key="prof_btn"):
-        st.info(f"Logged in as: {current_user_email}")
+        st.info(f"Logged in: {current_user_email}")
 
 if default_api_key:
     genai.configure(api_key=default_api_key)
     model = genai.GenerativeModel(model_name="gemini-3.6-flash", generation_config={"temperature": 0.0})
 
-    if menu == "💬 Case Studio":
+    if menu == "📖 Library":
+        st.markdown("## 📖 Legal Library")
+        q = st.text_input("Search Library...")
+        up = st.file_uploader("Upload File", type=["pdf","docx","txt"])
+        if up:
+            with open(os.path.join(TEMPLATES_FOLDER, up.name), "wb") as f: f.write(up.getbuffer())
+            st.success("Uploaded!")
+        for f in os.listdir(TEMPLATES_FOLDER):
+            st.markdown(f"📄 `{f}`")
+
+    elif menu == "📁 My Cases":
+        st.markdown("## 📁 My Cases")
+        for s in get_supabase_sessions(): st.markdown(f"- 📁 `{s}`")
+
+    elif menu == "⚙️ Settings":
+        st.markdown("## ⚙️ Settings")
+        adv = st.text_input("Advocate Name", value=st.session_state.get("advocate_name",""))
+        court = st.text_input("Court", value=st.session_state.get("default_court",""))
+        if st.button("Save"):
+            st.session_state.advocate_name = adv
+            st.session_state.default_court = court
+            st.success("Saved!")
+
+    elif menu == "📂 Chat History":
+        st.markdown("## 📂 Chat Archives")
+        for s in get_supabase_sessions():
+            if st.button(f"Open {s}", key=f"ch_{s}"):
+                st.session_state.current_session = s
+                st.session_state.nav_menu = "💬 Case Studio"
+                st.rerun()
+
+    elif menu == "💬 Case Studio":
         messages = get_supabase_chat_history(st.session_state.current_session)
         if not messages:
             st.markdown(f"""
@@ -296,10 +354,42 @@ if default_api_key:
                     if msg["role"] == "assistant" and "START_DRAFT" in msg["content"].upper():
                         st.download_button("📥 Download Word (.docx)", create_court_ready_docx(msg["content"]), file_name=f"Draft_{idx}.docx", key=f"dw_{idx}")
 
+        # INPUT DECK WITH TEMPLATE, CASE DOCS & VOICE
         st.markdown("---")
-        c1, c2 = st.columns(2)
-        with c1: f_file = st.file_uploader("Template", type=["docx","txt","pdf"], key=f"f_{st.session_state.uploader_key}")
-        with c2: c_file = st.file_uploader("Case Doc", type=["docx","txt","pdf","jpg","png"], key=f"c_{st.session_state.uploader_key}")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown("<div class='action-card'><strong style='color:#c084fc; font-size:11px;'>📤 Template</strong></div>", unsafe_allow_html=True)
+            f_file = st.file_uploader("Template", type=["docx","txt","pdf"], key=f"f_{st.session_state.uploader_key}", label_visibility="collapsed")
+        with c2:
+            st.markdown("<div class='action-card'><strong style='color:#c084fc; font-size:11px;'>📸 Case Docs</strong></div>", unsafe_allow_html=True)
+            c_file = st.file_uploader("Case", type=["docx","txt","pdf","jpg","png"], key=f"c_{st.session_state.uploader_key}", label_visibility="collapsed")
+        with c3:
+            st.markdown("<div class='action-card'><strong style='color:#c084fc; font-size:11px;'>🎙️ Voice Assistant</strong></div>", unsafe_allow_html=True)
+            voice_html = """
+            <div style="text-align: center;">
+                <button id="recordBtn" onclick="toggleRecord()" style="background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; border: none; padding: 6px 8px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 11px; width: 100%;">🎤 Speak</button>
+                <div id="statusTxt" style="color: #a855f7; font-size: 9px; margin-top: 2px;"></div>
+                <textarea id="speechOutput" placeholder="Voice text..." style="width: 100%; height: 26px; background-color: #050508; color: #ffffff; border: 1px solid #1f222e; border-radius: 4px; padding: 2px; font-size: 10px; resize: none; margin-top: 2px;"></textarea>
+            </div>
+            <script>
+                var recognition; var isRecording = false;
+                function toggleRecord() {
+                    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) { alert("Use Chrome."); return; }
+                    if (!isRecording) {
+                        var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                        recognition = new SpeechRecognition(); recognition.continuous = true; recognition.interimResults = true; recognition.lang = 'hi-IN';
+                        recognition.onstart = function() { isRecording = true; document.getElementById('recordBtn').innerText = "🛑 Stop"; document.getElementById('recordBtn').style.background = "#ef4444"; };
+                        recognition.onresult = function(event) {
+                            var t = ''; for (var i = event.resultIndex; i < event.results.length; ++i) { t += event.results[i][0].transcript; }
+                            document.getElementById('speechOutput').value = t;
+                        };
+                        recognition.onend = function() { isRecording = false; document.getElementById('recordBtn').innerText = "🎤 Speak"; document.getElementById('recordBtn').style.background = "linear-gradient(135deg, #7c3aed, #6366f1)"; };
+                        recognition.start();
+                    } else { recognition.stop(); }
+                }
+            </script>
+            """
+            st.components.v1.html(voice_html, height=75)
 
         user_input = st.chat_input("Ask Nyaya AI...")
         if user_input or f_file or c_file:
@@ -314,3 +404,5 @@ if default_api_key:
                 save_chat_to_supabase(st.session_state.current_session, "assistant", resp)
             st.session_state.uploader_key += 1
             st.rerun()
+else:
+    st.info("👈 API Key missing.")

@@ -136,6 +136,8 @@ if "current_session" not in st.session_state:
     st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
 if "nav_menu" not in st.session_state:
     st.session_state.nav_menu = "💬 Case Studio"
+if "show_profile" not in st.session_state:
+    st.session_state.show_profile = False
 
 params = st.query_params
 if "logged_in_user" in params and not st.session_state.user:
@@ -255,7 +257,7 @@ def create_court_ready_docx(text):
 
 nav_options = ["💬 Case Studio", "📖 Library", "📁 My Cases", "⚙️ Settings", "📂 Chat History"]
 
-# 🎯 SIDEBAR NAVIGATION RESTORED
+# 🎯 SIDEBAR NAVIGATION
 with st.sidebar:
     st.markdown("""
     <div style="text-align: center; margin-bottom: 15px;">
@@ -293,12 +295,22 @@ with st.sidebar:
         st.session_state.user = None
         st.rerun()
 
-# TOP APP BAR
+# TOP APP BAR WITH WORKING PROFILE TOGGLE
 col1, col2, col3 = st.columns([5, 1, 1])
 with col1: st.markdown("### Nyaya Assist <span style='color:#a855f7;'>AI</span>", unsafe_allow_html=True)
 with col3: 
     if st.button(user_initials, key="prof_btn"):
-        st.info(f"Logged in: {current_user_email}")
+        st.session_state.show_profile = not st.session_state.show_profile
+
+# 👤 PROFILE PANEL TOGGLE VIEW
+if st.session_state.show_profile:
+    st.markdown(f"""
+    <div style="background-color: #0e1017; border: 1px solid #7c3aed; border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+        <h4 style="margin: 0; color: #ffffff;">👤 Account Profile</h4>
+        <p style="color: #9ca3af; margin: 5px 0;"><b>Email:</b> {current_user_email}</p>
+        <p style="color: #9ca3af; margin: 5px 0;"><b>Plan:</b> Free Tier 👑</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 if default_api_key:
     genai.configure(api_key=default_api_key)

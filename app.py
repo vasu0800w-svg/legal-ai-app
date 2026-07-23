@@ -136,8 +136,6 @@ if "current_session" not in st.session_state:
     st.session_state.current_session = f"Case_{datetime.datetime.now().strftime('%d%b_%H%M')}"
 if "nav_menu" not in st.session_state:
     st.session_state.nav_menu = "💬 Case Studio"
-if "show_profile" not in st.session_state:
-    st.session_state.show_profile = False
 
 params = st.query_params
 if "logged_in_user" in params and not st.session_state.user:
@@ -295,22 +293,33 @@ with st.sidebar:
         st.session_state.user = None
         st.rerun()
 
-# TOP APP BAR WITH WORKING PROFILE TOGGLE
+# 👤 PROFILE MODAL DIALOG
+@st.dialog("👤 Account & Subscription")
+def show_profile_modal():
+    st.markdown(f"**Advocate Email:** `{current_user_email}`")
+    st.markdown("**Subscription Plan:** `Free Tier` 👑")
+    st.markdown("---")
+    st.markdown("#### 🔒 Change Password")
+    new_pwd = st.text_input("New Password", type="password", key="modal_pwd")
+    if st.button("Update Password", use_container_width=True):
+        if new_pwd and supabase:
+            try:
+                supabase.auth.update_user({"password": new_pwd})
+                st.success("✅ Password updated successfully!")
+            except Exception as e:
+                st.error(f"Error: {e}")
+        else:
+            st.warning("Please enter a valid password.")
+    st.markdown("---")
+    if st.button("🚀 Upgrade to Pro Plan", use_container_width=True):
+        st.info("Pro Plan gateway coming soon!")
+
+# TOP APP BAR WITH PROFILE MODAL TRIGGER
 col1, col2, col3 = st.columns([5, 1, 1])
 with col1: st.markdown("### Nyaya Assist <span style='color:#a855f7;'>AI</span>", unsafe_allow_html=True)
 with col3: 
     if st.button(user_initials, key="prof_btn"):
-        st.session_state.show_profile = not st.session_state.show_profile
-
-# 👤 PROFILE PANEL TOGGLE VIEW
-if st.session_state.show_profile:
-    st.markdown(f"""
-    <div style="background-color: #0e1017; border: 1px solid #7c3aed; border-radius: 12px; padding: 15px; margin-bottom: 20px;">
-        <h4 style="margin: 0; color: #ffffff;">👤 Account Profile</h4>
-        <p style="color: #9ca3af; margin: 5px 0;"><b>Email:</b> {current_user_email}</p>
-        <p style="color: #9ca3af; margin: 5px 0;"><b>Plan:</b> Free Tier 👑</p>
-    </div>
-    """, unsafe_allow_html=True)
+        show_profile_modal()
 
 if default_api_key:
     genai.configure(api_key=default_api_key)
